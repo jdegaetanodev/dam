@@ -5,7 +5,7 @@ export interface Coordenadas {
 
 export interface Foto {
   id: string;
-  url: string; 
+  url: string; // o ruta local mientras no se subió
   momento: 'problema' | 'arreglo';
 }
 
@@ -31,7 +31,7 @@ export interface Reporte {
   cuadrillaId: string | null;
   duplicadoDe: string | null;
   adhesiones: number;
-  creadoEn: string; 
+  creadoEn: string;
   sincronizado: boolean;
 }
 
@@ -49,26 +49,33 @@ export interface CambioDeEstado {
   estado: EstadoReporte;
   comentario: string | null;
   operadorId: string | null;
-  creadoEn: string;
+  fechaHora: string;
 }
 
-export type RolUsuario = 'vecino' | 'operador';
+export type Rol = 'vecino' | 'operador';
 
 export interface Usuario {
   id: string;
   nombre: string;
   email: string;
-  rol: RolUsuario;
+  telefono: string | null;
+  rol: Rol;
+  zonaId: string | null;
+  avisosActivos: boolean;
+  creadoEn: string;
 }
 
 export interface Zona {
   id: string;
   nombre: string;
-  limites: Coordenadas[];
+  limite: Coordenadas[];
+  referente: string;
 }
 
 export interface Cuadrilla {
   id: string;
   nombre: string;
-  areaResponsable: string;
+  zonaId: string;
+  especialidad: string;
+  activa: boolean;
 }
