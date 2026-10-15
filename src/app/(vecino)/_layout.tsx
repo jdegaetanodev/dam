@@ -42,6 +42,17 @@ export default function VecinoTabsLayout() {
           ),
         }}
       />
+    <Tabs.Screen
+        name="perfil"
+        options={{
+          title: 'Mi Perfil',
+          tabBarLabel: 'Perfil',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
     </Tabs>
   );
 }
