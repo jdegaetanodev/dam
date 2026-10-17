@@ -1,23 +1,50 @@
 {
-  "expo": {
-    "name": "mi-app-incidentes",
-    "slug": "mi-app-incidentes",
-    "scheme": "mi-app-incidentes",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "package": "ar.edu.uner.miappincidentes"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-router"
-    ]
-  }
+    "expo": 
+    {
+        "name": "mi-app-incidentes",
+        "slug": "mi-app-incidentes",
+        "scheme": "mi-app-incidentes",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "light",
+        "newArchEnabled": true,
+        "splash": 
+        {
+            "image": "./assets/splash-icon.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#0B3A5D"
+        },
+        "ios": 
+        {
+            "supportsTablet": true,
+            "infoPlist": 
+            {
+                "NSCameraUsageDescription": "Necesitamos la cámara para tomar la foto obligatoria del incidente urbano.",
+                "NSPhotoLibraryUsageDescription": "Necesitamos acceso a la galería para adjuntar fotografías de reclamos previos."
+            }
+        },
+        "android": 
+        {
+            "package": "ar.edu.uner.miappincidentes",
+            "permissions": 
+            [
+                "android.permission.CAMERA"
+            ]
+        },
+        "web": 
+        {
+            "favicon": "./assets/favicon.png"
+        },
+        "plugins": 
+        [
+            "expo-router",
+            [
+                "expo-camera",
+                {
+                    "cameraPermission": "Necesitamos la cámara para tomar la foto obligatoria del incidente urbano."
+                }
+            ]
+        ]
+    }
 }
