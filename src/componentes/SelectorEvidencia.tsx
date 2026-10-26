@@ -1,13 +1,21 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { CamaraModal } from './CamaraModal';
 import { seleccionarDeGaleria, deleteStoredImage } from '../servicios/mediaService';
 
-export const SelectorEvidencia: React.FC = () => {
+interface Props {
+  onChange?: (uri: string | null) => void;
+}
+
+export const SelectorEvidencia: React.FC<Props> = ({ onChange }) => {
   const [fotoUri, setFotoUri] = useState<string | null>(null);
   const [modalCamaraVisible, setModalCamaraVisible] = useState<boolean>(false);
+
+  // Avisa al formulario padre cada vez que cambia la foto (se saca, se elige o se quita)
+  useEffect(() => {
+    onChange?.(fotoUri);
+  }, [fotoUri]);
 
   // Handler para cuando se toma la foto con la cámara
   const handleFotoTomada = (uriPermanente: string) => {

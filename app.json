@@ -29,7 +29,9 @@
             "package": "ar.edu.uner.miappincidentes",
             "permissions": 
             [
-                "android.permission.CAMERA"
+                "android.permission.CAMERA",
+                "android.permission.RECORD_AUDIO"
+            
             ]
         },
         "web": 
@@ -43,6 +45,12 @@
                 "expo-camera",
                 {
                     "cameraPermission": "Necesitamos la cámara para tomar la foto obligatoria del incidente urbano."
+                }
+            ],
+            [
+                "expo-audio",
+                {
+                    "microphonePermission": "Necesitamos el micrófono para grabar audio de los incidentes urbanos."
                 }
             ]
         ]
