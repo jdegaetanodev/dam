@@ -11,6 +11,7 @@
   "dependencies": {
     "@react-native-vector-icons/ionicons": "^13.0.0",
     "expo": "~57.0.30",
+    "expo-audio": "~57.0.5",
     "expo-camera": "~57.0.6",
     "expo-constants": "~57.0.21",
     "expo-file-system": "~57.0.7",
@@ -22,7 +23,8 @@
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0"
+    "react-native-screens": "~4.26.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
