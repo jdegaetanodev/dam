@@ -28,7 +28,7 @@ import {
 } from '../../tipos';
 
 import { MOCK_ZONAS } from '../../mocks/zonas.mock';
-import { obtenerZonaDeCoordenadas } from '../../utilidades/zonas';
+import { obtenerZonaPorCoordenadas } from '../../utilidades/geografia';
 
 // Ubicación inicial de prueba en Gualeguaychú
 const COORDENADAS_PRUEBA: Coordenadas = {
@@ -81,7 +81,7 @@ export default function NuevoReporte() {
     }
 
     // Detectar automáticamente la zona municipal
-    const zonaDetectada = obtenerZonaDeCoordenadas(
+    const zonaDetectada = obtenerZonaPorCoordenadas(
       coordenadas,
       MOCK_ZONAS
     );

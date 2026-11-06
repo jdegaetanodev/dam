@@ -20,7 +20,7 @@ export function puntoDentroDePoligono(
     const yj = poligono[j].longitud;
 
     const intersecta =
-      yi > longitud !== yj > longitud &&
+      (yi > longitud) !== (yj > longitud) &&
       latitud <
         ((xj - xi) * (longitud - yi)) /
           (yj - yi) +
@@ -39,7 +39,12 @@ export function obtenerZonaPorCoordenadas(
   zonas: Zona[]
 ): Zona | null {
   for (const zona of zonas) {
-    if (puntoDentroDePoligono(coordenadas, zona.limite)) {
+    if (
+      puntoDentroDePoligono(
+        coordenadas,
+        zona.limite
+      )
+    ) {
       return zona;
     }
   }
