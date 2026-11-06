@@ -1,33 +1,14 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-
+import {  Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput,} from 'react-native';
 import { CategoriaGrid } from '../../componentes/CategoriaGrid';
 import { GrabadorVoz } from '../../componentes/GrabadorVoz';
 import { SelectorEvidencia } from '../../componentes/SelectorEvidencia';
 import { SelectorUbicacion } from '../../componentes/SelectorUbicacion';
-
 import { validarReporte } from '../../schemas/reporte';
-import {
-  crearReporte,
-  obtenerTiposDeReporte,
-} from '../../servicios/reportes';
-
-import {
-  Coordenadas,
-  TipoDeReporte,
-} from '../../tipos';
-
+import { crearReporte, obtenerTiposDeReporte,} from '../../servicios/reportes';
+import { Coordenadas, TipoDeReporte,} from '../../tipos';
 import { MOCK_ZONAS } from '../../mocks/zonas.mock';
+import { MOCK_CUADRILLAS } from '../../mocks/cuadrillas.mock';
 import { obtenerZonaPorCoordenadas } from '../../utilidades/geografia';
 
 // Ubicación inicial de prueba en Gualeguaychú
@@ -94,6 +75,20 @@ export default function NuevoReporte() {
       return;
     }
 
+    const cuadrillaAsignada = MOCK_CUADRILLAS.find(
+      (cuadrilla) =>
+        cuadrilla.zonaId === zonaDetectada.id &&
+        cuadrilla.activa
+    );
+
+    if (!cuadrillaAsignada) {
+      Alert.alert(
+        'Sin cuadrilla disponible',
+        'No hay una cuadrilla activa disponible para esta zona.'
+      );
+      return;
+    }
+
     setEnviando(true);
 
     try {
@@ -112,27 +107,20 @@ export default function NuevoReporte() {
             momento: 'problema',
           },
         ],
-
         coordenadas,
-
         direccion: '',
-
-        // Zona detectada automáticamente
         zonaId: zonaDetectada.id,
-
         estado: 'recibido',
-
         autorId: 'usr-084',
-
-        cuadrillaId: null,
-
+        cuadrillaId: cuadrillaAsignada.id,
         duplicadoDe: null,
       });
 
       Alert.alert(
         '¡Reporte enviado!',
         `Tu número de seguimiento es ${reporte.codigo}\n\n` +
-          `Zona asignada: ${zonaDetectada.nombre}`
+          `Zona asignada: ${zonaDetectada.nombre}\n` +
+          `Cuadrilla asignada: ${cuadrillaAsignada.nombre}`
       );
 
       // Reiniciar formulario
