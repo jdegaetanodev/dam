@@ -15,8 +15,14 @@ import {
 const demorar = (ms: number = 200) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+
+const USUARIO_ACTUAL_ID = 'usuario-actual';
+
+const ADHESIONES_REALIZADAS = new Set<string>();
+
 export const obtenerReportes = async (): Promise<Reporte[]> => {
   await demorar();
+
   return [...MOCK_REPORTES];
 };
 
@@ -34,6 +40,7 @@ export const obtenerReportePorId = async (
 
 export const obtenerTiposDeReporte = async (): Promise<TipoDeReporte[]> => {
   await demorar();
+
   return [...MOCK_TIPOS_REPORTE];
 };
 
@@ -123,9 +130,25 @@ export const sumarAdhesion = async (
     );
   }
 
+  // Identificador único de la adhesión:
+  // un usuario solo puede adherirse una vez al mismo reclamo.
+  const claveAdhesion =
+    `${USUARIO_ACTUAL_ID}-${reporteId}`;
+
+  if (ADHESIONES_REALIZADAS.has(claveAdhesion)) {
+    throw new Error(
+      'Ya estás adherido a este reclamo.'
+    );
+  }
+
+  // Registrar la adhesión
+  ADHESIONES_REALIZADAS.add(claveAdhesion);
+
+  // Incrementar contador
   MOCK_REPORTES[index] = {
     ...MOCK_REPORTES[index],
-    adhesiones: MOCK_REPORTES[index].adhesiones + 1,
+    adhesiones:
+      MOCK_REPORTES[index].adhesiones + 1,
   };
 
   return MOCK_REPORTES[index];

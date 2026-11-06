@@ -50,36 +50,46 @@ export default function MapaScreen() {
   );
 
   async function manejarMensaje(event: any) {
-    try {
-      const datos = JSON.parse(event.nativeEvent.data);
+  try {
+    const datos = JSON.parse(event.nativeEvent.data);
 
-      if (datos.tipo === 'SUMARSE_RECLAMO') {
-        const reporteActualizado = await sumarAdhesion(
-          datos.reporteId
-        );
+    if (datos.tipo === 'SUMARSE_RECLAMO') {
+      const reporteActualizado = await sumarAdhesion(
+        datos.reporteId
+      );
 
-        setReportes((reportesActuales) =>
-          reportesActuales.map((reporte) =>
-            reporte.id === reporteActualizado.id
-              ? reporteActualizado
-              : reporte
-          )
-        );
-
-        Alert.alert(
-          '¡Te sumaste al reclamo!',
-          `${reporteActualizado.codigo} ahora tiene ${reporteActualizado.adhesiones} adhesión(es).`
-        );
-      }
-    } catch (error) {
-      console.log('Error al sumarse al reclamo', error);
+      setReportes((reportesActuales) =>
+        reportesActuales.map((reporte) =>
+          reporte.id === reporteActualizado.id
+            ? reporteActualizado
+            : reporte
+        )
+      );
 
       Alert.alert(
-        'Error',
-        'No se pudo registrar tu adhesión.'
+        '¡Te sumaste al reclamo!',
+        `${reporteActualizado.codigo} ahora tiene ${reporteActualizado.adhesiones} adhesión(es).`
       );
     }
+  } catch (error) {
+    console.log(
+      'Error al sumarse al reclamo',
+      error
+    );
+
+    const mensaje =
+      error instanceof Error
+        ? error.message
+        : 'No se pudo registrar tu adhesión.';
+
+    Alert.alert(
+      mensaje === 'Ya estás adherido a este reclamo.'
+        ? 'Ya estás adherido'
+        : 'Error',
+      mensaje
+    );
   }
+}
 
   if (cargando) {
     return (
