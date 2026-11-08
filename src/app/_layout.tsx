@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contextos/AuthContext';
+import { BaseDatosProvider } from '../contextos/BaseDatosContext';
 
 function NavegadorPrincipal() {
   const { usuario, cargando } = useAuth();
@@ -47,9 +48,11 @@ function NavegadorPrincipal() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NavegadorPrincipal />
-      </AuthProvider>
+      <BaseDatosProvider>
+        <AuthProvider>
+          <NavegadorPrincipal />
+        </AuthProvider>
+      </BaseDatosProvider>
     </SafeAreaProvider>
   );
 }
