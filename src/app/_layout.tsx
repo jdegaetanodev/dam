@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contextos/AuthContext';
 import { BaseDatosProvider } from '../contextos/BaseDatosContext';
 import { RedProvider } from '../contextos/RedContext';
+import { SincronizacionReportesProvider } from '../contextos/SincronizacionReportesProvider';
 
 function NavegadorPrincipal() {
   const { usuario, cargando } = useAuth();
@@ -52,7 +53,9 @@ export default function RootLayout() {
       <RedProvider>
         <BaseDatosProvider>
           <AuthProvider>
-            <NavegadorPrincipal />
+            <SincronizacionReportesProvider>
+              <NavegadorPrincipal />
+            </SincronizacionReportesProvider>
           </AuthProvider>
         </BaseDatosProvider>
       </RedProvider>

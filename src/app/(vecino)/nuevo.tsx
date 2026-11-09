@@ -4,9 +4,14 @@ import { CategoriaGrid } from '../../componentes/CategoriaGrid';
 import { GrabadorVoz } from '../../componentes/GrabadorVoz';
 import { SelectorEvidencia } from '../../componentes/SelectorEvidencia';
 import { SelectorUbicacion } from '../../componentes/SelectorUbicacion';
+import { useAuth } from '../../contextos/AuthContext';
+import { useBaseDatos } from '../../contextos/BaseDatosContext';
+import { useEstadoRed } from '../../contextos/RedContext';
 import { validarReporte } from '../../schemas/reporte';
-import { crearReporte, obtenerTiposDeReporte,} from '../../servicios/reportes';
-import { Coordenadas, TipoDeReporte,} from '../../tipos';
+import { obtenerTiposDeReporte } from '../../servicios/reportes';
+import { guardarReporteLocal } from '../../servicios/reportesLocal';
+import { sincronizarReporteLocal } from '../../servicios/sincronizacionReportes';
+import { Coordenadas, Reporte, TipoDeReporte } from '../../tipos';
 import { MOCK_ZONAS } from '../../mocks/zonas.mock';
 import { MOCK_CUADRILLAS } from '../../mocks/cuadrillas.mock';
 import { obtenerZonaPorCoordenadas } from '../../utilidades/geografia';
@@ -18,6 +23,9 @@ const COORDENADAS_PRUEBA: Coordenadas = {
 };
 
 export default function NuevoReporte() {
+  const db = useBaseDatos();
+  const { usuario } = useAuth();
+  const { internetDisponible } = useEstadoRed();
   const [tipos, setTipos] = useState<TipoDeReporte[]>([]);
   const [tipoId, setTipoId] = useState<string | null>(null);
   const [descripcion, setDescripcion] = useState('');
@@ -61,6 +69,11 @@ export default function NuevoReporte() {
       return;
     }
 
+    if (!usuario) {
+      Alert.alert('Sesión no disponible', 'Iniciá sesión para guardar tu reporte.');
+      return;
+    }
+
     // Detectar automáticamente la zona municipal
     const zonaDetectada = obtenerZonaPorCoordenadas(
       coordenadas,
@@ -92,36 +105,49 @@ export default function NuevoReporte() {
     setEnviando(true);
 
     try {
-      const reporte = await crearReporte({
+      const reporteLocal: Reporte = {
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        codigo: '',
         tipoId,
-
-        descripcion:
-          descripcion.trim() || null,
-
+        descripcion: descripcion.trim() || null,
         audioUrl: audioUri,
-
-        fotos: [
-          {
-            id: `fot-${Date.now()}`,
-            url: fotoUri,
-            momento: 'problema',
-          },
-        ],
+        fotos: [{ id: `fot-${Date.now()}`, url: fotoUri, momento: 'problema' }],
         coordenadas,
         direccion: '',
         zonaId: zonaDetectada.id,
         estado: 'recibido',
-        autorId: 'usr-084',
+        autorId: usuario.id,
         cuadrillaId: cuadrillaAsignada.id,
         duplicadoDe: null,
-      });
+        adhesiones: 0,
+        creadoEn: new Date().toISOString(),
+        sincronizado: false,
+      };
 
-      Alert.alert(
-        '¡Reporte enviado!',
-        `Tu número de seguimiento es ${reporte.codigo}\n\n` +
-          `Zona asignada: ${zonaDetectada.nombre}\n` +
-          `Cuadrilla asignada: ${cuadrillaAsignada.nombre}`
-      );
+      await guardarReporteLocal(db, reporteLocal);
+
+      let reporteSincronizado: Reporte | null = null;
+      if (internetDisponible === true) {
+        try {
+          reporteSincronizado = await sincronizarReporteLocal(db, reporteLocal);
+        } catch (error) {
+          console.error('El reporte quedó guardado localmente y pendiente de sincronización:', error);
+        }
+      }
+
+      if (reporteSincronizado) {
+        Alert.alert(
+          '¡Reporte sincronizado!',
+          `Tu número de seguimiento es ${reporteSincronizado.codigo}\n\n` +
+            `Zona asignada: ${zonaDetectada.nombre}\n` +
+            `Cuadrilla asignada: ${cuadrillaAsignada.nombre}`
+        );
+      } else {
+        Alert.alert(
+          'Reporte guardado en este dispositivo',
+          'Se enviará automáticamente cuando haya conexión a internet.'
+        );
+      }
 
       // Reiniciar formulario
       setTipoId(null);
@@ -131,10 +157,11 @@ export default function NuevoReporte() {
       setFotoUri(null);
       setReinicio((n) => n + 1);
 
-    } catch {
+    } catch (error) {
+      console.error('No se pudo guardar el reporte en el dispositivo:', error);
       Alert.alert(
-        'No se pudo enviar',
-        'Probá de nuevo en un momento.'
+        'No se pudo guardar el reporte',
+        'No se guardó en este dispositivo. Revisá el almacenamiento e intentá de nuevo.'
       );
     } finally {
       setEnviando(false);

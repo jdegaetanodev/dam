@@ -107,6 +107,26 @@ export async function listarReportesLocales(
   return filas.map(convertirReporte);
 }
 
+export async function listarReportesPendientesLocales(
+  db: SQLiteDatabase,
+  autorId: string
+): Promise<Reporte[]> {
+  validarPropietario(autorId);
+
+  const filas = await db.getAllAsync<ReporteEnBaseDatos>(
+    `SELECT
+      id, codigo, tipoId, descripcion, audioUrl, fotos, coordenadas,
+      direccion, zonaId, estado, autorId, cuadrillaId, duplicadoDe,
+      adhesiones, creadoEn, sincronizado
+    FROM reportes
+    WHERE autorId = ? AND sincronizado = 0
+    ORDER BY creadoEn ASC`,
+    autorId
+  );
+
+  return filas.map(convertirReporte);
+}
+
 export async function obtenerReporteLocal(
   db: SQLiteDatabase,
   id: string,
