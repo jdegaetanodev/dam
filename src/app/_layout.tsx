@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contextos/AuthContext';
 import { BaseDatosProvider } from '../contextos/BaseDatosContext';
+import { RedProvider } from '../contextos/RedContext';
 
 function NavegadorPrincipal() {
   const { usuario, cargando } = useAuth();
@@ -48,11 +49,13 @@ function NavegadorPrincipal() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <BaseDatosProvider>
-        <AuthProvider>
-          <NavegadorPrincipal />
-        </AuthProvider>
-      </BaseDatosProvider>
+      <RedProvider>
+        <BaseDatosProvider>
+          <AuthProvider>
+            <NavegadorPrincipal />
+          </AuthProvider>
+        </BaseDatosProvider>
+      </RedProvider>
     </SafeAreaProvider>
   );
 }
