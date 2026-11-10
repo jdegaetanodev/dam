@@ -1,11 +1,16 @@
 import { Reporte, TipoDeReporte, CambioDeEstado, EstadoReporte } from '@/tipos';
-import { MOCK_REPORTES, MOCK_CAMBIOS_ESTADO } from '../mocks/reportes.mock';
 import { File } from 'expo-file-system';
+import { MOCK_REPORTES, MOCK_CAMBIOS_ESTADO } from '../mocks/reportes.mock';
 import { api } from './api';
 
-// Simulador de demora de red (200 ms) para mantener la interfaz asíncrona
+// Simulador de demora de red (200 ms)
 // (lo siguen usando las funciones que todavía trabajan con mocks)
-const demorar = (ms: number = 200) => new Promise((resolve) => setTimeout(resolve, ms));
+const demorar = (ms: number = 200) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+const USUARIO_ACTUAL_ID = 'usuario-actual';
+
+const ADHESIONES_REALIZADAS = new Set<string>();
 
 // ───────────────────────── Helpers de "Nuevo reporte" ─────────────────────────
 
@@ -63,18 +68,30 @@ export const crearReporte = async (
 
 export const obtenerReportes = async (): Promise<Reporte[]> => {
   await demorar();
+
   return [...MOCK_REPORTES];
 };
 
-export const obtenerReportePorId = async (id: string): Promise<Reporte | null> => {
+export const obtenerReportePorId = async (
+  id: string
+): Promise<Reporte | null> => {
   await demorar();
-  const reporte = MOCK_REPORTES.find((item) => item.id === id);
+
+  const reporte = MOCK_REPORTES.find(
+    (item) => item.id === id
+  );
+
   return reporte ? { ...reporte } : null;
 };
 
-export const obtenerHistorialEstados = async (reporteId: string): Promise<CambioDeEstado[]> => {
+export const obtenerHistorialEstados = async (
+  reporteId: string
+): Promise<CambioDeEstado[]> => {
   await demorar();
-  return MOCK_CAMBIOS_ESTADO.filter((cambio) => cambio.reporteId === reporteId);
+
+  return MOCK_CAMBIOS_ESTADO.filter(
+    (cambio) => cambio.reporteId === reporteId
+  );
 };
 
 export const actualizarEstadoReporte = async (
@@ -84,9 +101,15 @@ export const actualizarEstadoReporte = async (
   operadorId: string
 ): Promise<Reporte> => {
   await demorar();
-  const index = MOCK_REPORTES.findIndex((r) => r.id === reporteId);
+
+  const index = MOCK_REPORTES.findIndex(
+    (r) => r.id === reporteId
+  );
+
   if (index === -1) {
-    throw new Error(`Reporte con id ${reporteId} no encontrado`);
+    throw new Error(
+      `Reporte con id ${reporteId} no encontrado`
+    );
   }
 
   MOCK_REPORTES[index] = {
@@ -104,5 +127,45 @@ export const actualizarEstadoReporte = async (
   };
 
   MOCK_CAMBIOS_ESTADO.push(nuevoCambio);
+
+  return MOCK_REPORTES[index];
+};
+
+export const sumarAdhesion = async (
+  reporteId: string
+): Promise<Reporte> => {
+  await demorar();
+
+  const index = MOCK_REPORTES.findIndex(
+    (reporte) => reporte.id === reporteId
+  );
+
+  if (index === -1) {
+    throw new Error(
+      `Reporte con id ${reporteId} no encontrado`
+    );
+  }
+
+  // Identificador único de la adhesión:
+  // un usuario solo puede adherirse una vez al mismo reclamo.
+  const claveAdhesion =
+    `${USUARIO_ACTUAL_ID}-${reporteId}`;
+
+  if (ADHESIONES_REALIZADAS.has(claveAdhesion)) {
+    throw new Error(
+      'Ya estás adherido a este reclamo.'
+    );
+  }
+
+  // Registrar la adhesión
+  ADHESIONES_REALIZADAS.add(claveAdhesion);
+
+  // Incrementar contador
+  MOCK_REPORTES[index] = {
+    ...MOCK_REPORTES[index],
+    adhesiones:
+      MOCK_REPORTES[index].adhesiones + 1,
+  };
+
   return MOCK_REPORTES[index];
 };
