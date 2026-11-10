@@ -1,9 +1,8 @@
-// Texto y color de cada estado de un reporte.
-// Lo usan la bandeja y el detalle del operador para mostrar el estado de la misma forma.
-
+// Texto, color y cambios permitidos de cada estado de un reporte.
+// Lo usan las pantallas del operador y el servicio `operador.ts`.
 import { EstadoReporte } from '../tipos';
 
-/** Los nombres de los estados son los que estan en el PRD */
+/** Nombres de los estados como el PRD. */
 export const ETIQUETAS_ESTADO: Record<EstadoReporte, string> = {
   recibido: 'Recibido',
   en_revision: 'En revisión',
@@ -12,11 +11,21 @@ export const ETIQUETAS_ESTADO: Record<EstadoReporte, string> = {
   rechazado: 'Rechazado',
 };
 
-// Color de fondo de cada estado.
+//Color de fondo de cada estado
 export const COLORES_ESTADO: Record<EstadoReporte, string> = {
   recibido: '#2563EB',
   en_revision: '#B45309',
   asignado: '#7C3AED',
   resuelto: '#15803D',
   rechazado: '#DC2626',
+};
+
+// A qué estados puede pasar un reporte con "cambiar estado"
+//Asignar una cuadrilla es una acción aparte. Resuelto y rechazado son finales
+export const ESTADOS_SIGUIENTES: Record<EstadoReporte, EstadoReporte[]> = {
+  recibido: ['en_revision', 'rechazado'],
+  en_revision: ['rechazado'],
+  asignado: ['resuelto', 'en_revision', 'rechazado'],
+  resuelto: [],
+  rechazado: [],
 };
