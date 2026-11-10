@@ -9,12 +9,11 @@ import { useAuth } from '../../contextos/AuthContext';
 import { useBaseDatos } from '../../contextos/BaseDatosContext';
 import { useEstadoRed } from '../../contextos/RedContext';
 import { validarReporte } from '../../schemas/reporte';
-import { crearReporte, obtenerTiposDeReporte,} from '../../servicios/reportes';
-import { Coordenadas, TipoDeReporte,} from '../../tipos';
+import { obtenerTiposDeReporte } from '../../servicios/reportes';
+import { guardarReporteLocal } from '../../servicios/reportesLocal';
+import { sincronizarReporteLocal } from '../../servicios/sincronizacionReportes';
+import { Coordenadas, Reporte, TipoDeReporte } from '../../tipos';
 import { ApiError } from '../../servicios/api';
-import { MOCK_ZONAS } from '../../mocks/zonas.mock';
-import { MOCK_CUADRILLAS } from '../../mocks/cuadrillas.mock';
-import { obtenerZonaPorCoordenadas } from '../../utilidades/geografia';
 
 // Ubicación inicial de prueba en Gualeguaychú
 const COORDENADAS_PRUEBA: Coordenadas = {
@@ -118,7 +117,7 @@ export default function NuevoReporte() {
         direccion,
         zonaId: '',
         estado: 'recibido',
-        autorId: 'usr-084', // TODO: usuario logueado (AuthContext); la API lo toma del token
+        autorId: usuario.id,
         cuadrillaId: null,
         duplicadoDe: null,
         adhesiones: 0,
@@ -140,9 +139,7 @@ export default function NuevoReporte() {
       if (reporteSincronizado) {
         Alert.alert(
           '¡Reporte sincronizado!',
-          `Tu número de seguimiento es ${reporteSincronizado.codigo}\n\n` +
-            `Zona asignada: ${zonaDetectada.nombre}\n` +
-            `Cuadrilla asignada: ${cuadrillaAsignada.nombre}`
+          `Tu número de seguimiento es ${reporteSincronizado.codigo}`
         );
       } else {
         Alert.alert(
