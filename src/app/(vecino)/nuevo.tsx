@@ -14,6 +14,7 @@ import { CategoriaGrid } from '../../componentes/CategoriaGrid';
 import { GrabadorVoz } from '../../componentes/GrabadorVoz';
 import { SelectorEvidencia } from '../../componentes/SelectorEvidencia';
 import { validarReporte } from '../../schemas/reporte';
+import { ApiError } from '../../servicios/api';
 import { crearReporte, obtenerTiposDeReporte } from '../../servicios/reportes';
 import { Coordenadas, TipoDeReporte } from '../../tipos';
 
@@ -33,7 +34,15 @@ export default function NuevoReporte() {
   const [reinicio, setReinicio] = useState(0); // cambiar la key reinicia el selector de foto
 
   useEffect(() => {
-    obtenerTiposDeReporte().then(setTipos);
+    obtenerTiposDeReporte()
+      .then(setTipos)
+      .catch((e) => {
+        console.log('ERROR AL CARGAR TIPOS:', e);
+        Alert.alert(
+          'No se pudieron cargar las categorías',
+          e instanceof ApiError ? e.message : 'Revisá tu conexión y volvé a abrir la pantalla.'
+        );
+      });
   }, []);
 
   async function enviar() {
@@ -73,8 +82,13 @@ export default function NuevoReporte() {
       setErrores({});
       setFotoUri(null);
       setReinicio((n) => n + 1);
-    } catch {
-      Alert.alert('No se pudo enviar', 'Probá de nuevo en un momento.');
+    } catch (e) {
+      // El formulario NO se borra: el vecino no pierde lo que cargó.
+      console.log('ERROR AL ENVIAR:', e);
+      Alert.alert(
+        'No se pudo enviar',
+        e instanceof ApiError ? e.message : 'Probá de nuevo en un momento.'
+      );
     } finally {
       setEnviando(false);
     }
