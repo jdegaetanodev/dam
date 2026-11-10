@@ -10,11 +10,15 @@ import { obtenerZonaPorCoordenadas } from '../utilidades/geografia';
 interface Props {
   coordenadas: Coordenadas | null;
   onChange: (coordenadas: Coordenadas) => void;
+  onUserChange?: () => void;
+  consultarGpsAlIniciar?: boolean;
 }
 
 export function SelectorUbicacion({
   coordenadas,
   onChange,
+  onUserChange,
+  consultarGpsAlIniciar = true,
 }: Props) {
   const [textoUbicacion, setTextoUbicacion] = useState(
     'Obteniendo ubicación...'
@@ -24,8 +28,10 @@ export function SelectorUbicacion({
 
   // Intentar obtener la ubicación GPS una sola vez
   useEffect(() => {
-    obtenerUbicacionGPS();
-  }, []);
+    if (consultarGpsAlIniciar) {
+      obtenerUbicacionGPS();
+    }
+  }, [consultarGpsAlIniciar]);
 
   async function obtenerUbicacionGPS() {
     try {
@@ -242,6 +248,7 @@ export function SelectorUbicacion({
         typeof datos.latitud === 'number' &&
         typeof datos.longitud === 'number'
       ) {
+        onUserChange?.();
         onChange({
           latitud: datos.latitud,
           longitud: datos.longitud,
