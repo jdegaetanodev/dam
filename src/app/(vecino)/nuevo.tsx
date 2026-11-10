@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {  Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput,} from 'react-native';
+import * as Location from 'expo-location';
 import { CategoriaGrid } from '../../componentes/CategoriaGrid';
 import { GrabadorVoz } from '../../componentes/GrabadorVoz';
 import { SelectorEvidencia } from '../../componentes/SelectorEvidencia';
@@ -8,10 +9,9 @@ import { useAuth } from '../../contextos/AuthContext';
 import { useBaseDatos } from '../../contextos/BaseDatosContext';
 import { useEstadoRed } from '../../contextos/RedContext';
 import { validarReporte } from '../../schemas/reporte';
-import { obtenerTiposDeReporte } from '../../servicios/reportes';
-import { guardarReporteLocal } from '../../servicios/reportesLocal';
-import { sincronizarReporteLocal } from '../../servicios/sincronizacionReportes';
-import { Coordenadas, Reporte, TipoDeReporte } from '../../tipos';
+import { crearReporte, obtenerTiposDeReporte,} from '../../servicios/reportes';
+import { Coordenadas, TipoDeReporte,} from '../../tipos';
+import { ApiError } from '../../servicios/api';
 import { MOCK_ZONAS } from '../../mocks/zonas.mock';
 import { MOCK_CUADRILLAS } from '../../mocks/cuadrillas.mock';
 import { obtenerZonaPorCoordenadas } from '../../utilidades/geografia';
@@ -21,6 +21,23 @@ const COORDENADAS_PRUEBA: Coordenadas = {
   latitud: -33.0089,
   longitud: -58.5142,
 };
+
+// La API exige una dirección. El selector entrega solo coordenadas, así que
+// la resolvemos con geocodificación inversa; si falla, usamos las coordenadas como texto.
+async function direccionDesde(c: Coordenadas): Promise<string> {
+  try {
+    const [lugar] = await Location.reverseGeocodeAsync({
+      latitude: c.latitud,
+      longitude: c.longitud,
+    });
+    const calle = lugar?.street ?? lugar?.name ?? '';
+    const texto = `${calle} ${lugar?.streetNumber ?? ''}`.trim();
+    if (texto) return texto;
+  } catch {
+    // sin red o sin servicio de geocodificación: seguimos con el respaldo
+  }
+  return `${c.latitud.toFixed(5)}, ${c.longitud.toFixed(5)}`;
+}
 
 export default function NuevoReporte() {
   const db = useBaseDatos();
@@ -43,7 +60,15 @@ export default function NuevoReporte() {
   const [reinicio, setReinicio] = useState(0);
 
   useEffect(() => {
-    obtenerTiposDeReporte().then(setTipos);
+    obtenerTiposDeReporte()
+      .then(setTipos)
+      .catch((e) => {
+        console.log('ERROR AL CARGAR TIPOS:', e);
+        Alert.alert(
+          'No se pudieron cargar las categorías',
+          e instanceof ApiError ? e.message : 'Revisá tu conexión y volvé a abrir la pantalla.'
+        );
+      });
   }, []);
 
   async function enviar() {
@@ -74,37 +99,14 @@ export default function NuevoReporte() {
       return;
     }
 
-    // Detectar automáticamente la zona municipal
-    const zonaDetectada = obtenerZonaPorCoordenadas(
-      coordenadas,
-      MOCK_ZONAS
-    );
-
-    if (!zonaDetectada) {
-      Alert.alert(
-        'Ubicación fuera de zona',
-        'La ubicación seleccionada no pertenece a ninguna zona municipal.'
-      );
-      return;
-    }
-
-    const cuadrillaAsignada = MOCK_CUADRILLAS.find(
-      (cuadrilla) =>
-        cuadrilla.zonaId === zonaDetectada.id &&
-        cuadrilla.activa
-    );
-
-    if (!cuadrillaAsignada) {
-      Alert.alert(
-        'Sin cuadrilla disponible',
-        'No hay una cuadrilla activa disponible para esta zona.'
-      );
-      return;
-    }
-
     setEnviando(true);
 
     try {
+      const direccion = await direccionDesde(coordenadas);
+
+      // La zona y la cuadrilla las resuelve la API: la zona a partir de las
+      // coordenadas y la cuadrilla la asigna el operador desde la bandeja.
+      // Esos campos van con valores neutros porque el servicio no los envía.
       const reporteLocal: Reporte = {
         id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         codigo: '',
@@ -113,11 +115,11 @@ export default function NuevoReporte() {
         audioUrl: audioUri,
         fotos: [{ id: `fot-${Date.now()}`, url: fotoUri, momento: 'problema' }],
         coordenadas,
-        direccion: '',
-        zonaId: zonaDetectada.id,
+        direccion,
+        zonaId: '',
         estado: 'recibido',
-        autorId: usuario.id,
-        cuadrillaId: cuadrillaAsignada.id,
+        autorId: 'usr-084', // TODO: usuario logueado (AuthContext); la API lo toma del token
+        cuadrillaId: null,
         duplicadoDe: null,
         adhesiones: 0,
         creadoEn: new Date().toISOString(),
