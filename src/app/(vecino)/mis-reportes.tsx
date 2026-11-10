@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import Ionicons from '@react-native-vector-icons/ionicons';
 
 import { obtenerReportes } from '../../servicios/reportes';
 import { Reporte } from '../../tipos';
@@ -156,17 +157,52 @@ export default function MisReportesScreen() {
                 </Text>
               </View>
 
-              <View
-                style={[
-                  estilos.estado,
-                  {
-                    backgroundColor: obtenerColorEstado(item.estado),
-                  },
-                ]}
-              >
-                <Text style={estilos.estadoTexto}>
-                  {obtenerTextoEstado(item.estado)}
-                </Text>
+              <View style={estilos.indicadores}>
+                <View
+                  style={[
+                    estilos.estado,
+                    {
+                      backgroundColor: obtenerColorEstado(item.estado),
+                    },
+                  ]}
+                >
+                  <Text style={estilos.estadoTexto}>
+                    {obtenerTextoEstado(item.estado)}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    estilos.sincronizacion,
+                    item.sincronizado
+                      ? estilos.sincronizado
+                      : estilos.pendiente,
+                  ]}
+                  accessibilityRole="text"
+                  accessibilityLabel={
+                    item.sincronizado
+                      ? 'Reporte sincronizado con el servidor'
+                      : 'Reporte pendiente de sincronización'
+                  }
+                >
+                  <Ionicons
+                    name={
+                      item.sincronizado
+                        ? 'cloud-done-outline'
+                        : 'cloud-upload-outline'
+                    }
+                    size={14}
+                    color={item.sincronizado ? '#15803D' : '#B45309'}
+                  />
+                  <Text
+                    style={[
+                      estilos.sincronizacionTexto,
+                      { color: item.sincronizado ? '#15803D' : '#B45309' },
+                    ]}
+                  >
+                    {item.sincronizado ? 'Sincronizado' : 'Pendiente'}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -236,6 +272,11 @@ const estilos = StyleSheet.create({
     gap: 10,
   },
 
+  indicadores: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+
   codigo: {
     fontSize: 18,
     fontWeight: '800',
@@ -257,6 +298,28 @@ const estilos = StyleSheet.create({
   estadoTexto: {
     color: '#FFFFFF',
     fontSize: 13,
+    fontWeight: '700',
+  },
+
+  sincronizacion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+
+  sincronizado: {
+    backgroundColor: '#DCFCE7',
+  },
+
+  pendiente: {
+    backgroundColor: '#FEF3C7',
+  },
+
+  sincronizacionTexto: {
+    fontSize: 12,
     fontWeight: '700',
   },
 

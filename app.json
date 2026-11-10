@@ -38,7 +38,8 @@
           "microphonePermission": "Necesitamos el micrófono para grabar audio de los incidentes urbanos."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-sqlite"
     ]
   }
 }
