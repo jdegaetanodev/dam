@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
+import { AccionesReporte } from '../../../componentes/AccionesReporte';
+import { Boton } from '../../../componentes/Boton';
 import { InsigniaEstado } from '../../../componentes/InsigniaEstado';
 import { obtenerZonas } from '../../../servicios/operador';
 import {
@@ -31,16 +33,7 @@ function ReproductorAudio({ url }: { url: string }) {
     player.play();
   };
 
-  return (
-    <Pressable
-      onPress={alternar}
-      style={estilos.boton}
-      accessibilityRole="button"
-      accessibilityLabel={estado.playing ? 'Pausar nota de voz' : 'Escuchar nota de voz'}
-    >
-      <Text style={estilos.textoBoton}>{estado.playing ? 'Pausar' : 'Escuchar nota de voz'}</Text>
-    </Pressable>
-  );
+  return <Boton texto={estado.playing ? 'Pausar nota de voz' : 'Escuchar nota de voz'} onPress={alternar} />;
 }
 
 // Una sección de fotos con su título.
@@ -119,14 +112,7 @@ export default function DetalleReporteScreen() {
         <Text style={estilos.textoError} accessibilityRole="alert">
           {error}
         </Text>
-        <Pressable
-          onPress={cargar}
-          style={estilos.boton}
-          accessibilityRole="button"
-          accessibilityHint="Vuelve a pedir el reporte"
-        >
-          <Text style={estilos.textoBoton}>Reintentar</Text>
-        </Pressable>
+        <Boton texto="Reintentar" onPress={cargar} />
       </View>
     );
   }
@@ -166,6 +152,9 @@ export default function DetalleReporteScreen() {
           </View>
         ))}
       </View>
+
+      {/* Después de cada acción, se vuelve a pedir el reporte para mostrar lo que quedó guardado. */}
+      <AccionesReporte reporte={reporte} onCambio={cargar} />
     </ScrollView>
   );
 }
@@ -183,6 +172,4 @@ const estilos = StyleSheet.create({
   comentario: { fontSize: 16, color: '#475569', fontStyle: 'italic', marginTop: 2 },
   centro: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 16 },
   textoError: { fontSize: 18, color: '#B91C1C', textAlign: 'center' },
-  boton: { minHeight: 48, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24, borderRadius: 8, backgroundColor: '#0369A1' },
-  textoBoton: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
 });
