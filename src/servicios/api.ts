@@ -50,6 +50,8 @@ export const api = {
   get: <T>(ruta: string) => pedir<T>(ruta),
   post: <T>(ruta: string, body: unknown) =>
     pedir<T>(ruta, { method: 'POST', body: JSON.stringify(body) }),
+  patch: <T>(ruta: string, body: unknown) =>
+    pedir<T>(ruta, { method: 'PATCH', body: JSON.stringify(body) }),
   subir: <T>(ruta: string, formData: FormData) =>
     pedir<T>(ruta, { method: 'POST', body: formData }),
 };
