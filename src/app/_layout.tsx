@@ -2,6 +2,9 @@ import { Stack } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contextos/AuthContext';
+import { BaseDatosProvider } from '../contextos/BaseDatosContext';
+import { RedProvider } from '../contextos/RedContext';
+import { SincronizacionReportesProvider } from '../contextos/SincronizacionReportesProvider';
 
 function NavegadorPrincipal() {
   const { usuario, cargando } = useAuth();
@@ -47,9 +50,15 @@ function NavegadorPrincipal() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NavegadorPrincipal />
-      </AuthProvider>
+      <RedProvider>
+        <BaseDatosProvider>
+          <AuthProvider>
+            <SincronizacionReportesProvider>
+              <NavegadorPrincipal />
+            </SincronizacionReportesProvider>
+          </AuthProvider>
+        </BaseDatosProvider>
+      </RedProvider>
     </SafeAreaProvider>
   );
 }

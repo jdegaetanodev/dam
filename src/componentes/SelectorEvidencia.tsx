@@ -1,32 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { CamaraModal } from './CamaraModal';
 import { seleccionarDeGaleria, deleteStoredImage } from '../servicios/mediaService';
 
 interface Props {
-  onChange?: (uri: string | null) => void;
+  uri: string | null;
+  onChange: (uri: string | null) => void;
 }
 
-export const SelectorEvidencia: React.FC<Props> = ({ onChange }) => {
-  const [fotoUri, setFotoUri] = useState<string | null>(null);
+export const SelectorEvidencia: React.FC<Props> = ({ uri: fotoUri, onChange }) => {
   const [modalCamaraVisible, setModalCamaraVisible] = useState<boolean>(false);
-
-  // Avisa al formulario padre cada vez que cambia la foto (se saca, se elige o se quita)
-  useEffect(() => {
-    onChange?.(fotoUri);
-  }, [fotoUri]);
 
   // Handler para cuando se toma la foto con la cámara
   const handleFotoTomada = (uriPermanente: string) => {
-    setFotoUri(uriPermanente);
+    onChange(uriPermanente);
   };
 
   // Handler para seleccionar de la galería
   const handleSeleccionarGaleria = async () => {
     const uriPermanente = await seleccionarDeGaleria();
     if (uriPermanente) {
-      setFotoUri(uriPermanente);
+      onChange(uriPermanente);
     }
   };
 
@@ -34,7 +29,7 @@ export const SelectorEvidencia: React.FC<Props> = ({ onChange }) => {
   const handleQuitarFoto = async () => {
     if (fotoUri) {
       await deleteStoredImage(fotoUri);
-      setFotoUri(null);
+      onChange(null);
     }
   };
 

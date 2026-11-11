@@ -1,14 +1,25 @@
-import { useEffect, useState } from 'react';
-import {  Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput,} from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {  ActivityIndicator, Alert, AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,} from 'react-native';
 import * as Location from 'expo-location';
 import { CategoriaGrid } from '../../componentes/CategoriaGrid';
 import { GrabadorVoz } from '../../componentes/GrabadorVoz';
 import { SelectorEvidencia } from '../../componentes/SelectorEvidencia';
 import { SelectorUbicacion } from '../../componentes/SelectorUbicacion';
+import { useAuth } from '../../contextos/AuthContext';
+import { useBaseDatos } from '../../contextos/BaseDatosContext';
+import { useEstadoRed } from '../../contextos/RedContext';
 import { validarReporte } from '../../schemas/reporte';
+import { obtenerTiposDeReporte } from '../../servicios/reportes';
+import { guardarReporteLocal } from '../../servicios/reportesLocal';
+import { sincronizarReporteLocal } from '../../servicios/sincronizacionReportes';
+import {
+  cargarBorradorReporte,
+  descartarBorradorReporte,
+  guardarBorradorReporte,
+} from '../../servicios/borradoresReporte';
+import { deleteStoredFile } from '../../servicios/mediaService';
+import { Coordenadas, Reporte, TipoDeReporte } from '../../tipos';
 import { ApiError } from '../../servicios/api';
-import { crearReporte, obtenerTiposDeReporte } from '../../servicios/reportes';
-import { Coordenadas, TipoDeReporte } from '../../tipos';
 
 // Ubicación inicial de prueba en Gualeguaychú
 const COORDENADAS_PRUEBA: Coordenadas = {
@@ -34,6 +45,9 @@ async function direccionDesde(c: Coordenadas): Promise<string> {
 }
 
 export default function NuevoReporte() {
+  const db = useBaseDatos();
+  const { usuario } = useAuth();
+  const { internetDisponible } = useEstadoRed();
   const [tipos, setTipos] = useState<TipoDeReporte[]>([]);
   const [tipoId, setTipoId] = useState<string | null>(null);
   const [descripcion, setDescripcion] = useState('');
@@ -42,6 +56,7 @@ export default function NuevoReporte() {
 
   const [coordenadas, setCoordenadas] =
     useState<Coordenadas | null>(COORDENADAS_PRUEBA);
+  const [ubicacionRestaurada, setUbicacionRestaurada] = useState(false);
 
   const [errores, setErrores] =
     useState<Record<string, string>>({});
@@ -49,6 +64,40 @@ export default function NuevoReporte() {
   const [enviando, setEnviando] = useState(false);
 
   const [reinicio, setReinicio] = useState(0);
+  const [borradorListo, setBorradorListo] = useState(false);
+  const [autoguardadoActivo, setAutoguardadoActivo] = useState(false);
+  const [errorBorrador, setErrorBorrador] = useState<string | null>(null);
+  const colaBorradores = useRef<Promise<void>>(Promise.resolve());
+  const contenidoActualRef = useRef({
+    tipoId,
+    descripcion,
+    audioUri,
+    fotoUri,
+    coordenadas,
+  });
+  contenidoActualRef.current = {
+    tipoId,
+    descripcion,
+    audioUri,
+    fotoUri,
+    coordenadas,
+  };
+
+  const persistirBorrador = useCallback(
+    (usuarioId: string, contenido: typeof contenidoActualRef.current) => {
+      const operacion = colaBorradores.current
+        .catch(() => undefined)
+        .then(() => guardarBorradorReporte(usuarioId, contenido));
+      colaBorradores.current = operacion;
+      return operacion;
+    },
+    []
+  );
+
+  const eliminarBorrador = useCallback(async (usuarioId: string) => {
+    await colaBorradores.current.catch(() => undefined);
+    await descartarBorradorReporte(usuarioId);
+  }, []);
 
   useEffect(() => {
     obtenerTiposDeReporte()
@@ -61,6 +110,150 @@ export default function NuevoReporte() {
         );
       });
   }, []);
+
+  useEffect(() => {
+    let cancelado = false;
+    setBorradorListo(false);
+    setAutoguardadoActivo(false);
+    setTipoId(null);
+    setDescripcion('');
+    setAudioUri(null);
+    setFotoUri(null);
+    setCoordenadas(COORDENADAS_PRUEBA);
+    setUbicacionRestaurada(false);
+
+    if (!usuario) {
+      setBorradorListo(true);
+      return;
+    }
+
+    async function recuperarBorrador(usuarioId: string) {
+      try {
+        const borrador = await cargarBorradorReporte(usuarioId);
+        if (cancelado) return;
+
+        if (!borrador) {
+          setBorradorListo(true);
+          return;
+        }
+
+        Alert.alert(
+          'Borrador encontrado',
+          'Hay un reporte que dejaste sin terminar. ¿Querés continuar editándolo?',
+          [
+            {
+              text: 'Descartar',
+              style: 'destructive',
+              onPress: () => {
+                void (async () => {
+                  try {
+                    await eliminarBorrador(usuarioId);
+                    await Promise.all([
+                      borrador.fotoUri
+                        ? deleteStoredFile(borrador.fotoUri)
+                        : Promise.resolve(),
+                      borrador.audioUri
+                        ? deleteStoredFile(borrador.audioUri)
+                        : Promise.resolve(),
+                    ]);
+                    setTipoId(null);
+                    setDescripcion('');
+                    setAudioUri(null);
+                    setFotoUri(null);
+                    setCoordenadas(COORDENADAS_PRUEBA);
+                    setUbicacionRestaurada(false);
+                    setAutoguardadoActivo(false);
+                    setBorradorListo(true);
+                  } catch (error) {
+                    console.error('No se pudo descartar el borrador:', error);
+                    Alert.alert('No se pudo descartar', 'Intentá nuevamente.');
+                    setBorradorListo(true);
+                  }
+                })();
+              },
+            },
+            {
+              text: 'Continuar',
+              onPress: () => {
+                setTipoId(borrador.tipoId);
+                setDescripcion(borrador.descripcion);
+                setAudioUri(borrador.audioUri);
+                setFotoUri(borrador.fotoUri);
+                setCoordenadas(borrador.coordenadas);
+                setUbicacionRestaurada(borrador.coordenadas !== null);
+                setAutoguardadoActivo(true);
+                setBorradorListo(true);
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      } catch (error) {
+        if (cancelado) return;
+        console.error('No se pudo recuperar el borrador:', error);
+        setBorradorListo(true);
+        Alert.alert(
+          'No se pudo recuperar el borrador',
+          'El borrador guardado no se pudo leer. Podés comenzar un reporte nuevo.'
+        );
+      }
+    }
+
+    void recuperarBorrador(usuario.id);
+
+    return () => {
+      cancelado = true;
+    };
+  }, [usuario?.id, eliminarBorrador]);
+
+  useEffect(() => {
+    if (!usuario || !borradorListo || !autoguardadoActivo || enviando) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void persistirBorrador(usuario.id, contenidoActualRef.current)
+        .then(() => setErrorBorrador(null))
+        .catch((error: unknown) => {
+          console.error('No se pudo guardar el borrador:', error);
+          setErrorBorrador('No se pudo guardar el borrador en este dispositivo.');
+        });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [
+    usuario?.id,
+    borradorListo,
+    autoguardadoActivo,
+    enviando,
+    tipoId,
+    descripcion,
+    audioUri,
+    fotoUri,
+    coordenadas,
+    persistirBorrador,
+  ]);
+
+  useEffect(() => {
+    if (!usuario || !borradorListo || !autoguardadoActivo) {
+      return;
+    }
+
+    const subscription = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') return;
+
+      void persistirBorrador(usuario.id, contenidoActualRef.current).catch((error: unknown) => {
+        console.error('No se pudo guardar el borrador al salir de la app:', error);
+        setErrorBorrador('No se pudo guardar el borrador en este dispositivo.');
+      });
+    });
+
+    return () => subscription.remove();
+  }, [usuario?.id, borradorListo, autoguardadoActivo, persistirBorrador]);
+
+  function marcarCambiosDeFormulario() {
+    setAutoguardadoActivo(true);
+  }
 
   async function enviar() {
     const errs = validarReporte({
@@ -85,6 +278,11 @@ export default function NuevoReporte() {
       return;
     }
 
+    if (!usuario) {
+      Alert.alert('Sesión no disponible', 'Iniciá sesión para guardar tu reporte.');
+      return;
+    }
+
     setEnviando(true);
 
     try {
@@ -93,34 +291,53 @@ export default function NuevoReporte() {
       // La zona y la cuadrilla las resuelve la API: la zona a partir de las
       // coordenadas y la cuadrilla la asigna el operador desde la bandeja.
       // Esos campos van con valores neutros porque el servicio no los envía.
-      const reporte = await crearReporte({
+      const reporteLocal: Reporte = {
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        codigo: '',
         tipoId,
-
-        descripcion:
-          descripcion.trim() || null,
-
+        descripcion: descripcion.trim() || null,
         audioUrl: audioUri,
-
-        fotos: [
-          {
-            id: `fot-${Date.now()}`,
-            url: fotoUri,
-            momento: 'problema',
-          },
-        ],
+        fotos: [{ id: `fot-${Date.now()}`, url: fotoUri, momento: 'problema' }],
         coordenadas,
         direccion,
         zonaId: '',
         estado: 'recibido',
-        autorId: 'usr-084', // TODO: usuario logueado (AuthContext); la API lo toma del token
+        autorId: usuario.id,
         cuadrillaId: null,
         duplicadoDe: null,
-      });
+        adhesiones: 0,
+        creadoEn: new Date().toISOString(),
+        sincronizado: false,
+      };
 
-      Alert.alert(
-        '¡Reporte enviado!',
-        `Tu número de seguimiento es ${reporte.codigo}`
-      );
+      await guardarReporteLocal(db, reporteLocal);
+      setAutoguardadoActivo(false);
+      try {
+        await eliminarBorrador(usuario.id);
+      } catch (error) {
+        console.error('El reporte se guardó, pero no se pudo eliminar su borrador:', error);
+      }
+
+      let reporteSincronizado: Reporte | null = null;
+      if (internetDisponible === true) {
+        try {
+          reporteSincronizado = await sincronizarReporteLocal(db, reporteLocal);
+        } catch (error) {
+          console.error('El reporte quedó guardado localmente y pendiente de sincronización:', error);
+        }
+      }
+
+      if (reporteSincronizado) {
+        Alert.alert(
+          '¡Reporte sincronizado!',
+          `Tu número de seguimiento es ${reporteSincronizado.codigo}`
+        );
+      } else {
+        Alert.alert(
+          'Reporte guardado en este dispositivo',
+          'Se enviará automáticamente cuando haya conexión a internet.'
+        );
+      }
 
       // Reiniciar formulario
       setTipoId(null);
@@ -128,17 +345,28 @@ export default function NuevoReporte() {
       setAudioUri(null);
       setErrores({});
       setFotoUri(null);
+      setCoordenadas(COORDENADAS_PRUEBA);
+      setUbicacionRestaurada(false);
       setReinicio((n) => n + 1);
-    } catch (e) {
-      // El formulario NO se borra: el vecino no pierde lo que cargó.
-      console.log('ERROR AL ENVIAR:', e);
+
+    } catch (error) {
+      console.error('No se pudo guardar el reporte en el dispositivo:', error);
       Alert.alert(
-        'No se pudo enviar',
-        e instanceof ApiError ? e.message : 'Probá de nuevo en un momento.'
+        'No se pudo guardar el reporte',
+        'No se guardó en este dispositivo. Revisá el almacenamiento e intentá de nuevo.'
       );
     } finally {
       setEnviando(false);
     }
+  }
+
+  if (!borradorListo) {
+    return (
+      <View style={styles.cargandoBorrador}>
+        <ActivityIndicator size="large" color="#0B3A5D" />
+        <Text style={styles.cargandoBorradorTexto}>Revisando borradores...</Text>
+      </View>
+    );
   }
 
   return (
@@ -161,10 +389,15 @@ export default function NuevoReporte() {
           ¿Qué pasa?
         </Text>
 
+        {errorBorrador && <Text style={styles.error}>{errorBorrador}</Text>}
+
         <CategoriaGrid
           tipos={tipos}
           seleccionadaId={tipoId}
-          onSelect={setTipoId}
+          onSelect={(id) => {
+            setTipoId(id);
+            marcarCambiosDeFormulario();
+          }}
         />
 
         {errores.tipoId && (
@@ -179,7 +412,11 @@ export default function NuevoReporte() {
 
         <SelectorEvidencia
           key={reinicio}
-          onChange={setFotoUri}
+          uri={fotoUri}
+          onChange={(uri) => {
+            setFotoUri(uri);
+            marcarCambiosDeFormulario();
+          }}
         />
 
         {errores.fotos && (
@@ -195,6 +432,8 @@ export default function NuevoReporte() {
         <SelectorUbicacion
           coordenadas={coordenadas}
           onChange={setCoordenadas}
+          onUserChange={marcarCambiosDeFormulario}
+          consultarGpsAlIniciar={!ubicacionRestaurada}
         />
 
         {errores.coordenadas && (
@@ -210,7 +449,10 @@ export default function NuevoReporte() {
         <TextInput
           style={styles.input}
           value={descripcion}
-          onChangeText={setDescripcion}
+          onChangeText={(texto) => {
+            setDescripcion(texto);
+            marcarCambiosDeFormulario();
+          }}
           placeholder="Escribí acá los detalles (o grabá un audio)"
           placeholderTextColor="#6B7280"
           multiline
@@ -228,7 +470,10 @@ export default function NuevoReporte() {
 
         <GrabadorVoz
           uri={audioUri}
-          onChange={setAudioUri}
+          onChange={(uri) => {
+            setAudioUri(uri);
+            marcarCambiosDeFormulario();
+          }}
         />
 
         <Pressable
@@ -257,6 +502,19 @@ export default function NuevoReporte() {
 }
 
 const styles = StyleSheet.create({
+  cargandoBorrador: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#F9FAFB',
+  },
+
+  cargandoBorradorTexto: {
+    color: '#475569',
+    fontSize: 16,
+  },
+
   pantalla: {
     flex: 1,
     backgroundColor: '#F9FAFB',

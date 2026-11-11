@@ -10,6 +10,7 @@ import {
 } from 'expo-audio';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { saveAudioPermanently } from '../servicios/mediaService';
 
 const MAX_SEGUNDOS = 60;
 
@@ -60,7 +61,17 @@ export function GrabadorVoz({ uri, onChange }: Props) {
     await recorder.stop();
     setGrabando(false);
     await setAudioModeAsync({ allowsRecording: false });
-    if (recorder.uri) onChange(recorder.uri);
+    if (recorder.uri) {
+      try {
+        onChange(await saveAudioPermanently(recorder.uri));
+      } catch (error) {
+        console.error('No se pudo conservar la nota de voz:', error);
+        Alert.alert(
+          'No se pudo guardar el audio',
+          'La nota de voz no quedó guardada. Intentá grabarla nuevamente.'
+        );
+      }
+    }
   }
 
   function alternarReproduccion() {
