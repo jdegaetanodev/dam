@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { 
   StyleSheet, 
@@ -36,7 +35,7 @@ export const CamaraModal: React.FC<CamaraModalProps> = ({
 
   if (!permission.granted) {
     return (
-      <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <Modal visible={visible} animationType="fade" onRequestClose={onClose}>
         <View style={styles.permissionContainer}>
           <Text style={styles.permissionTitle}>Permiso de Cámara Requerido</Text>
           <Text style={styles.permissionText}>
@@ -85,18 +84,15 @@ export const CamaraModal: React.FC<CamaraModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={styles.container}>
-        {/* CameraView ocupa el fondo y se cierra sin hijos */}
+        {/* En Expo Camera los controles van como hijos directos de CameraView */}
         <CameraView
           ref={cameraRef}
-          style={StyleSheet.absoluteFillObject}
+          style={styles.camara}
           facing={facing}
           flash={flash}
-        />
-
-        {/* Capa transparente superpuesta con los botones */}
-        <View style={styles.overlay}>
+        >
           {/* Barra Superior */}
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.iconButton} onPress={toggleFlash}>
@@ -128,7 +124,7 @@ export const CamaraModal: React.FC<CamaraModalProps> = ({
 
             <View style={{ width: 60 }} />
           </View>
-        </View>
+        </CameraView>
       </View>
     </Modal>
   );
@@ -139,8 +135,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
+  camara: {
+    flex: 1,
     justifyContent: 'space-between',
     paddingTop: 50,
     paddingBottom: 40,
