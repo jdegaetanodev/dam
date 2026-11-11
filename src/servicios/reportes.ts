@@ -24,7 +24,7 @@ const ahoraIso = () =>
 // Sube una foto o un audio a POST /archivos y devuelve la url que guarda la API.
 // En Expo el fetch moderno no acepta el viejo { uri, name, type } dentro del FormData:
 // hay que pasar un File de expo-file-system (que funciona como Blob).
-async function subirArchivo(uri: string): Promise<string> {
+export async function subirArchivo(uri: string): Promise<string> {
   const form = new FormData();
   form.append('archivo', new File(uri));
   const res = await api.subir<{ url: string }>('/archivos', form);
@@ -42,7 +42,13 @@ export const obtenerTiposDeReporte = async (): Promise<TipoDeReporte[]> =>
  */
 export const obtenerMisReportes = async (): Promise<Reporte[]> =>
   api.get<Reporte[]>('/yo/reportes');
+// Si no existe, la API responde con el error REPORTE_NO_ENCONTRADO ("No encontramos ese reporte.").
+export const obtenerReportePorId = async (id: string): Promise<Reporte | null> =>
+  api.get<Reporte>(`/reportes/${id}`);
 
+// «Qué fue pasando»: del cambio más viejo al más nuevo.
+export const obtenerHistorialEstados = async (reporteId: string): Promise<CambioDeEstado[]> =>
+  api.get<CambioDeEstado[]>(`/reportes/${reporteId}/cambios`);
 
 export const crearReporte = async (
   nuevoReporte: Omit<Reporte, 'id' | 'codigo' | 'creadoEn' | 'adhesiones' | 'sincronizado'>
@@ -78,28 +84,6 @@ export const obtenerReportes = async (): Promise<Reporte[]> => {
   await demorar();
 
   return [...MOCK_REPORTES];
-};
-
-export const obtenerReportePorId = async (
-  id: string
-): Promise<Reporte | null> => {
-  await demorar();
-
-  const reporte = MOCK_REPORTES.find(
-    (item) => item.id === id
-  );
-
-  return reporte ? { ...reporte } : null;
-};
-
-export const obtenerHistorialEstados = async (
-  reporteId: string
-): Promise<CambioDeEstado[]> => {
-  await demorar();
-
-  return MOCK_CAMBIOS_ESTADO.filter(
-    (cambio) => cambio.reporteId === reporteId
-  );
 };
 
 export const actualizarEstadoReporte = async (
