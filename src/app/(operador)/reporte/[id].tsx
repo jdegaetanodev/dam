@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
@@ -70,8 +70,6 @@ export default function DetalleReporteScreen() {
 
   // Pide el reporte, su historial y los nombres de su tipo y su zona.
   const cargar = useCallback(async () => {
-    setCargando(true);
-    setError(null);
     try {
       const [datos, cambios, tipos, zonas] = await Promise.all([
         obtenerReportePorId(id),
@@ -94,9 +92,19 @@ export default function DetalleReporteScreen() {
     }
   }, [id]);
 
-  useEffect(() => {
+  // Al abrir la pantalla ya está en "cargando", así que solo hace falta pedir los datos.
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [cargar])
+  );
+
+  // Para volver a pedir (Reintentar o después de una acción), primero se muestra la carga.
+  const recargar = () => {
+    setCargando(true);
+    setError(null);
     cargar();
-  }, [cargar]);
+  };
 
   if (cargando) {
     return (
@@ -112,7 +120,7 @@ export default function DetalleReporteScreen() {
         <Text style={estilos.textoError} accessibilityRole="alert">
           {error}
         </Text>
-        <Boton texto="Reintentar" onPress={cargar} />
+        <Boton texto="Reintentar" onPress={recargar} />
       </View>
     );
   }
@@ -148,13 +156,13 @@ export default function DetalleReporteScreen() {
             <Text style={estilos.dato}>
               {formatearFecha(cambio.fechaHora)} · {ETIQUETAS_ESTADO[cambio.estado]}
             </Text>
-            {cambio.comentario ? <Text style={estilos.comentario}>"{cambio.comentario}"</Text> : null}
+            {cambio.comentario ? <Text style={estilos.comentario}>{`"${cambio.comentario}"`}</Text> : null}
           </View>
         ))}
       </View>
 
       {/* Después de cada acción, se vuelve a pedir el reporte para mostrar lo que quedó guardado. */}
-      <AccionesReporte reporte={reporte} onCambio={cargar} />
+      <AccionesReporte reporte={reporte} onCambio={recargar} />
     </ScrollView>
   );
 }

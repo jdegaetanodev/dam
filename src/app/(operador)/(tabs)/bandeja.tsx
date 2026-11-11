@@ -70,7 +70,6 @@ export default function BandejaScreen() {
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [recargas, setRecargas] = useState(0);
 
   // Carga al entrar a la pestaña, al volver del detalle y cada vez que cambia un filtro.
   useFocusEffect(
@@ -97,7 +96,7 @@ export default function BandejaScreen() {
       return () => {
         vigente = false;
       };
-    }, [filtros, recargas])
+    }, [filtros])
   );
 
   const nombreDeTipo = (id: string) => tipos.find((t) => t.id === id)?.nombre ?? '';
@@ -143,7 +142,7 @@ export default function BandejaScreen() {
           {error}
         </Text>
         <Pressable
-          onPress={() => setRecargas((n) => n + 1)}
+          onPress={() => setFiltros({ ...filtros })}
           style={estilos.boton}
           accessibilityRole="button"
           accessibilityHint="Vuelve a pedir los reportes"
