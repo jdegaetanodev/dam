@@ -130,7 +130,7 @@ export default function DetalleReporteScreen() {
 
   return (
     <ScrollView style={estilos.contenedor} contentContainerStyle={estilos.contenido}>
-      {/* El título del encabezado muestra el número de seguimiento, como en el PRD. */}
+      {/* El título del encabezado muestra el número de seguimiento. */}
       <Stack.Screen options={{ title: `Reporte ${reporte.codigo}` }} />
 
       <View style={estilos.seccion}>

@@ -6,7 +6,7 @@ interface Props {
   deshabilitado?: boolean;
 }
 
-// Botón grande (48 de alto, como pide el PRD) y accesible, para las pantallas del operador.
+// Botón grande y accesible, para las pantallas del operador.
 export function Boton({ texto, onPress, deshabilitado = false }: Props) {
   return (
     <Pressable

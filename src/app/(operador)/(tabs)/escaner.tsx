@@ -6,7 +6,7 @@ import { BarcodeScanningResult, CameraView, useCameraPermissions } from 'expo-ca
 import { Boton } from '../../../componentes/Boton';
 import { obtenerReportePorCodigo } from '../../../servicios/operador';
 
-// Forma del número de seguimiento según la API (regla R4): GCHU-2026-00412
+// Forma del número de seguimiento: GCHU-2026-00412
 const FORMATO_CODIGO = /^GCHU-\d{4}-\d{5}$/;
 
 export default function EscanerScreen() {

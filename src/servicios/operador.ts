@@ -19,10 +19,9 @@ export interface FiltrosBandeja {
   zonaId: string; // una zona o ZONA_TODAS
 }
 
-// --- Consultas ---
+// Consultas
 
 // Reportes abiertos: los más apoyados primero y, a igualdad, el más viejo.
-// Se piden 100, el máximo que permite la API por página.
 export const obtenerBandeja = async (filtros: FiltrosBandeja): Promise<Reporte[]> => {
   let ruta = `/bandeja?zonaId=${filtros.zonaId}&porPagina=100`;
   if (filtros.estado) ruta += `&estado=${filtros.estado}`;
@@ -40,9 +39,9 @@ export const obtenerZonas = async (): Promise<Zona[]> => api.get<Zona[]>('/zonas
 export const obtenerCuadrillas = async (zonaId: string): Promise<Cuadrilla[]> =>
   api.get<Cuadrilla[]>(`/cuadrillas?zonaId=${zonaId}&activa=true`);
 
-// --- Acciones del operador (cada una devuelve el reporte actualizado) ---
+// Acciones del operador (cada una devuelve el reporte actualizado)
 
-// Pasa el reporte a otro estado. La API exige comentario para rechazar.
+// Pasa el reporte a otro estado. Se exige comentario para rechazar.
 export const cambiarEstado = async (
   reporteId: string,
   estado: EstadoReporte,

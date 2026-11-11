@@ -2,7 +2,7 @@
 // Lo usan las pantallas del operador y el servicio `operador.ts`.
 import { EstadoReporte } from '../tipos';
 
-/** Nombres de los estados como el PRD. */
+/** Nombres de los estados */
 export const ETIQUETAS_ESTADO: Record<EstadoReporte, string> = {
   recibido: 'Recibido',
   en_revision: 'En revisión',
