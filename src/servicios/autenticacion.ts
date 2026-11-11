@@ -1,24 +1,31 @@
 import { Usuario } from '../tipos';
-import { MOCK_USUARIOS } from '../mocks/reportes.mock';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.0.46:3000';
 
 export interface RespuestaAutenticacion {
   usuario: Usuario;
   token: string;
 }
 
-const demorar = (ms: number = 250) => new Promise((resolve) => setTimeout(resolve, ms));
+interface ApiRespuestaExito<T> {
+  datos: T;
+  meta: any;
+}
+
+interface ApiRespuestaError {
+  error: {
+    codigo: string;
+    mensaje: string;
+  };
+}
 
 /**
- * Autentica un usuario con email y contraseña.
- * Para desarrollo y evaluación:
- * - Cualquier contraseña de 6 o más caracteres es válida para los usuarios del mock.
+ * Autentica un usuario con email y contraseña contra la API del profe
  */
 export const loginConCredenciales = async (
   email: string,
   clave: string
 ): Promise<RespuestaAutenticacion> => {
-  await demorar();
-
   const emailLimpio = email.trim().toLowerCase();
 
   if (!emailLimpio || !clave) {
@@ -29,41 +36,52 @@ export const loginConCredenciales = async (
     throw new Error('La contraseña debe tener al menos 6 caracteres.');
   }
 
-  const usuarioEncontrado = MOCK_USUARIOS.find(
-    (u) => u.email.toLowerCase() === emailLimpio
-  );
+  try {
+    const respuesta = await fetch(`${API_URL}/auth/ingreso`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: emailLimpio,
+        contrasena: clave, 
+      }),
+    });
 
-  if (!usuarioEncontrado) {
-    throw new Error('Credenciales inválidas. Verificá tu email.');
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      const errorApi = resultado as ApiRespuestaError;
+      throw new Error(
+        errorApi.error?.mensaje || 'Credenciales inválidas. Verificá tu email o contraseña.'
+      );
+    }
+
+    const { token, usuario } = (resultado as ApiRespuestaExito<RespuestaAutenticacion>).datos;
+
+    return {
+      usuario,
+      token,
+    };
+  } catch (error: any) {
+    if (error.name === 'TypeError' || error.message?.includes('Network request failed')) {
+      throw new Error(
+        `No se pudo conectar con el servidor en ${API_URL}. Revisá la conexión y que la API esté corriendo.`
+      );
+    }
+    throw error;
   }
-
-  // Generamos un token simulado hasta que esten las apis
-  const token = `tok_${usuarioEncontrado.id}_${Date.now()}`;
-
-  return {
-    usuario: usuarioEncontrado,
-    token,
-  };
 };
 
 /**
  * Acceso directo rápido para desarrollo/evaluación (Bypass)
+ * Conectado a los usuarios de prueba provistos en la base de la cátedra:
+ * - Vecino: norma@mail.com (clave: demo1234)
+ * - Operador: operador.norte@demo.ar (clave: demo1234)
  */
 export const loginRapidoPorRol = async (
   rol: 'vecino' | 'operador'
 ): Promise<RespuestaAutenticacion> => {
-  await demorar(150);
-
-  const usuario = MOCK_USUARIOS.find((u) => u.rol === rol);
-
-  if (!usuario) {
-    throw new Error(`No se encontró un usuario de prueba para el rol ${rol}.`);
-  }
-
-  const token = `tok_bypass_${usuario.id}_${Date.now()}`;
-
-  return {
-    usuario,
-    token,
-  };
+  const email = rol === 'vecino' ? 'norma@mail.com' : 'operador.norte@demo.ar';
+  return loginConCredenciales(email, 'demo1234');
 };

@@ -36,6 +36,14 @@ async function subirArchivo(uri: string): Promise<string> {
 export const obtenerTiposDeReporte = async (): Promise<TipoDeReporte[]> =>
   api.get<TipoDeReporte[]>('/tipos-de-reporte');
 
+/**
+ * Obtiene los reportes del vecino logueado mediante el token de sesión.
+ * Con nuevo@demo.ar devolverá [] (lista vacía).
+ */
+export const obtenerMisReportes = async (): Promise<Reporte[]> =>
+  api.get<Reporte[]>('/yo/reportes');
+
+
 export const crearReporte = async (
   nuevoReporte: Omit<Reporte, 'id' | 'codigo' | 'creadoEn' | 'adhesiones' | 'sincronizado'>
 ): Promise<Reporte> => {

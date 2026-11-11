@@ -10,7 +10,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
 
-import { obtenerReportes } from '../../servicios/reportes';
+import { obtenerMisReportes } from '../../servicios/reportes';
 import { Reporte } from '../../tipos';
 
 export default function MisReportesScreen() {
@@ -20,7 +20,7 @@ export default function MisReportesScreen() {
 
   const cargarReportes = async () => {
     try {
-      const datos = await obtenerReportes();
+      const datos = await obtenerMisReportes();
 
       setReportes(
         [...datos].sort(
