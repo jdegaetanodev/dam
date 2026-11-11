@@ -11,11 +11,17 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@react-native-vector-icons/ionicons';
 import { useAuth } from '../contextos/AuthContext';
 
 export default function Login() {
   const insets = useSafeAreaInsets();
-  const { iniciarSesion, iniciarSesionRapida } = useAuth();
+  const {
+    iniciarSesion,
+    iniciarSesionRapida,
+    puedeReingresarConHuella,
+    reingresarOperadorConHuella,
+  } = useAuth();
 
   const [email, setEmail] = useState('');
   const [clave, setClave] = useState('');
@@ -44,6 +50,21 @@ export default function Login() {
       await iniciarSesionRapida(rol);
     } catch (err: any) {
       setErrorMensaje(err.message || 'Error al acceder');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const manejarReingresoBiometrico = async () => {
+    setErrorMensaje(null);
+    setEnviando(true);
+    try {
+      const exito = await reingresarOperadorConHuella();
+      if (!exito) {
+        setErrorMensaje('No se pudo verificar la huella digital.');
+      }
+    } catch (err: any) {
+      setErrorMensaje(err.message || 'Error durante la autenticación biométrica');
     } finally {
       setEnviando(false);
     }
@@ -130,6 +151,20 @@ export default function Login() {
               <Text style={estilos.textoBotonPrincipal}>Iniciar Sesión</Text>
             )}
           </Pressable>
+
+          {/* Botón condicional de reingreso por huella para el operador */}
+          {puedeReingresarConHuella && (
+            <Pressable
+              style={[estilos.botonHuella, enviando && estilos.botonDeshabilitado]}
+              onPress={manejarReingresoBiometrico}
+              disabled={enviando}
+              role="button"
+              accessibilityLabel="Reingresar con huella digital como operador"
+            >
+              <Ionicons name="finger-print-outline" size={22} color="#0284C7" />
+              <Text style={estilos.textoBotonHuella}>Reingresar con Huella (Operador)</Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={estilos.seccionBypass}>
@@ -255,6 +290,23 @@ const estilos = StyleSheet.create({
   textoBotonPrincipal: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  botonHuella: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#0284C7',
+    backgroundColor: '#F0F9FF',
+  },
+  textoBotonHuella: {
+    color: '#0284C7',
+    fontSize: 15,
     fontWeight: '700',
   },
   seccionBypass: {
