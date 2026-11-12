@@ -11,6 +11,7 @@ import {
   obtenerCuadrillas,
   obtenerReportePorCodigo,
 } from '../servicios/operador';
+import { seleccionarDeGaleria } from '../servicios/mediaService';
 import { Cuadrilla, Reporte } from '../tipos';
 import { ESTADOS_SIGUIENTES, ETIQUETAS_ESTADO } from '../utilidades/estados';
 
@@ -61,6 +62,11 @@ export function AccionesReporte({ reporte, onCambio }: Props) {
     } finally {
       setProcesando(false);
     }
+  };
+  // La foto del arreglo puede venir de la galería (por ejemplo, la que mandó la cuadrilla).
+  const elegirDeGaleria = async () => {
+    const uri = await seleccionarDeGaleria();
+    if (uri) ejecutar(() => agregarFotoDelArreglo(reporte.id, uri));
   };
 
   // El operador escribe el número de seguimiento del original; la API pide su id.
@@ -141,11 +147,11 @@ export function AccionesReporte({ reporte, onCambio }: Props) {
       ) : null}
 
       {puedeAgregarFoto ? (
-        <Boton
-          texto="Agregar foto del arreglo"
-          onPress={() => setCamaraVisible(true)}
-          deshabilitado={procesando}
-        />
+        <>
+          <Text style={estilos.subtitulo}>Foto del arreglo</Text>
+          <Boton texto="Elegir de la galería" onPress={elegirDeGaleria} deshabilitado={procesando} />
+          <Boton texto="Sacar foto" onPress={() => setCamaraVisible(true)} deshabilitado={procesando} />
+        </>
       ) : null}
 
       {/* Cámara del equipo: devuelve la foto ya guardada en el teléfono. */}

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
@@ -60,6 +61,8 @@ function Fotos({ titulo, fotos }: { titulo: string; fotos: Foto[] }) {
 export default function DetalleReporteScreen() {
   // Expo Router pasa el id que viene en la dirección: /reporte/rep-00412
   const { id } = useLocalSearchParams<{ id: string }>();
+  // Alto de la barra de navegación del celular, para que no tape el final de la pantalla.
+  const { bottom } = useSafeAreaInsets();
 
   const [reporte, setReporte] = useState<Reporte | null>(null);
   const [historial, setHistorial] = useState<CambioDeEstado[]>([]);
@@ -129,7 +132,8 @@ export default function DetalleReporteScreen() {
   const fotosDelArreglo = reporte.fotos.filter((f) => f.momento === 'arreglo');
 
   return (
-    <ScrollView style={estilos.contenedor} contentContainerStyle={estilos.contenido}>
+    <ScrollView
+      style={estilos.contenedor} contentContainerStyle={[estilos.contenido, { paddingBottom: 16 + bottom }]}>
       {/* El título del encabezado muestra el número de seguimiento. */}
       <Stack.Screen options={{ title: `Reporte ${reporte.codigo}` }} />
 

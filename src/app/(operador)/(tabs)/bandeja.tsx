@@ -40,6 +40,7 @@ function FilaDeFiltro({ titulo, textoTodos, opciones, elegida, onElegir }: FilaP
             <Pressable
               key={opcion.valor ?? 'todos'}
               onPress={() => onElegir(opcion.valor)}
+              hitSlop={{ top: 4, bottom: 4 }}
               style={[estilos.opcion, seleccionada && estilos.opcionSeleccionada]}
               accessibilityRole="button"
               accessibilityState={{ selected: seleccionada }}
@@ -201,16 +202,16 @@ const estilos = StyleSheet.create({
   tituloFiltro: { fontSize: 14, fontWeight: '700', color: '#475569', marginHorizontal: 16, marginTop: 4 },
   fila: { paddingHorizontal: 12, paddingVertical: 6, gap: 8 },
   opcion: {
-    minHeight: 48,
+    minHeight: 40,
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    borderRadius: 24,
+    paddingHorizontal: 12,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#64748B',
     backgroundColor: '#FFFFFF',
   },
   opcionSeleccionada: { backgroundColor: '#0369A1', borderColor: '#0369A1' },
-  textoOpcion: { fontSize: 16, color: '#1E293B' },
+  textoOpcion: { fontSize: 14, color: '#1E293B' },
   textoSeleccionado: { color: '#FFFFFF', fontWeight: '700' },
   lista: { padding: 16, gap: 12 },
   tarjeta: { padding: 16, gap: 8, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
