@@ -83,6 +83,7 @@ export default function NuevoReporte() {
     coordenadas,
   };
 
+  //Hace una serie de borradores: si varios borradores se disparan al mismo tiempo, no se sobreescriben
   const persistirBorrador = useCallback(
     (usuarioId: string, contenido: typeof contenidoActualRef.current) => {
       const operacion = colaBorradores.current
@@ -94,6 +95,7 @@ export default function NuevoReporte() {
     []
   );
 
+  //Espera a que termine el guardado antes de eliminar borrador
   const eliminarBorrador = useCallback(async (usuarioId: string) => {
     await colaBorradores.current.catch(() => undefined);
     await descartarBorradorReporte(usuarioId);

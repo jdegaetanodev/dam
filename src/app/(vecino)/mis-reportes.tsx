@@ -12,40 +12,78 @@ import { useFocusEffect } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
 
 import { ModalQrReporte } from '../../componentes/ModalQrReporte';
+import { useAuth } from '../../contextos/AuthContext';
+import { useBaseDatos } from '../../contextos/BaseDatosContext';
+import { useEstadoRed } from '../../contextos/RedContext';
 import { avisarCambiosDeEstado } from '../../servicios/notificaciones';
 import { obtenerMisReportes } from '../../servicios/reportes';
+import { listarReportesLocales } from '../../servicios/reportesLocal';
 import { Reporte } from '../../tipos';
 
+//Listar reportes locales al dispositivo y remotos
+function combinarReportes(locales: Reporte[], remotos: Reporte[]): Reporte[] {
+  const reportesPorClave = new Map<string, Reporte>();
+  const claveDe = (reporte: Reporte) =>
+    reporte.codigo.trim() ? `codigo:${reporte.codigo.trim()}` : `id:${reporte.id}`;
+
+  for (const reporte of remotos) {
+    reportesPorClave.set(claveDe(reporte), { ...reporte, sincronizado: true });
+  }
+
+  for (const reporte of locales) {
+    const clave = claveDe(reporte);
+    const remoto = reportesPorClave.get(clave);
+    reportesPorClave.set(
+      clave,
+      remoto ? { ...reporte, ...remoto, sincronizado: true } : reporte
+    );
+  }
+
+  return [...reportesPorClave.values()].sort(
+    (a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime()
+  );
+}
+
 export default function MisReportesScreen() {
+  const db = useBaseDatos();
+  const { usuario } = useAuth();
+  const { internetDisponible } = useEstadoRed();
   const [reportes, setReportes] = useState<Reporte[]>([]);
   const [cargando, setCargando] = useState(true);
   const [actualizando, setActualizando] = useState(false);
   const [codigoQrSeleccionado, setCodigoQrSeleccionado] = useState<string | null>(null);
 
-  const cargarReportes = async () => {
+  const cargarReportes = useCallback(async () => {
     try {
-      const datos = await obtenerMisReportes();
-      avisarCambiosDeEstado(datos);
+      const reportesLocales = usuario
+        ? await listarReportesLocales(db, usuario.id)
+        : [];
+      setReportes(combinarReportes(reportesLocales, []));
 
-      setReportes(
-        [...datos].sort(
-          (a, b) =>
-            new Date(b.creadoEn).getTime() -
-            new Date(a.creadoEn).getTime()
-        )
-      );
+      if (internetDisponible === true && usuario) {
+        try {
+          const reportesRemotos = await obtenerMisReportes();
+          avisarCambiosDeEstado(reportesRemotos);
+          setReportes(combinarReportes(reportesLocales, reportesRemotos));
+        } catch (error) {
+          console.error(
+            'No se pudieron actualizar los reportes desde el servidor; se muestran los guardados en el dispositivo:',
+            error
+          );
+        }
+      }
     } catch (error) {
-      console.log('Error al cargar los reportes:', error);
+      console.error('No se pudieron cargar los reportes guardados en el dispositivo:', error);
     } finally {
       setCargando(false);
       setActualizando(false);
     }
-  };
+  }, [db, internetDisponible, usuario]);
 
   useFocusEffect(
     useCallback(() => {
-      cargarReportes();
-    }, [])
+      void cargarReportes();
+    }, [cargarReportes])
   );
 
   const actualizar = () => {
