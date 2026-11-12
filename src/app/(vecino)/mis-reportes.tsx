@@ -12,6 +12,7 @@ import { useFocusEffect } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
 
 import { ModalQrReporte } from '../../componentes/ModalQrReporte';
+import { avisarCambiosDeEstado } from '../../servicios/notificaciones';
 import { obtenerMisReportes } from '../../servicios/reportes';
 import { Reporte } from '../../tipos';
 
@@ -24,6 +25,7 @@ export default function MisReportesScreen() {
   const cargarReportes = async () => {
     try {
       const datos = await obtenerMisReportes();
+      avisarCambiosDeEstado(datos);
 
       setReportes(
         [...datos].sort(
