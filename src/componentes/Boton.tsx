@@ -31,5 +31,5 @@ const estilos = StyleSheet.create({
     backgroundColor: '#0369A1',
   },
   deshabilitado: { opacity: 0.5 },
-  texto: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  texto: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 });
