@@ -37,6 +37,15 @@ function NavegadorPrincipal() {
       {/* 2. Rutas del vecino: solo existen si hay sesión y el rol es 'vecino' */}
       <Stack.Protected guard={tieneSesion && esVecino}>
         <Stack.Screen name="(vecino)" />
+        <Stack.Screen
+          name="detalle-vecino/[id]"
+          options={{
+            headerShown: true,
+            headerStyle: { backgroundColor: '#0B3A5D' },
+            headerTintColor: '#FFFFFF',
+            title: 'Detalle del reporte',
+          }}
+        />
       </Stack.Protected>
 
       {/* 3. Rutas del operador: solo existen si hay sesión y el rol es 'operador' */}
