@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
 
 import { ModalQrReporte } from '../../componentes/ModalQrReporte';
@@ -198,79 +198,91 @@ export default function MisReportesScreen() {
 
           return (
             <View style={estilos.tarjeta}>
-              <View style={estilos.encabezadoTarjeta}>
-                <View>
-                  <Text style={estilos.codigo}>
-                    {item.codigo}
-                  </Text>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/detalle-vecino/[id]',
+                    params: { id: item.id, codigo: item.codigo },
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={`Ver detalle del reporte ${item.codigo || 'pendiente de sincronización'}`}
+                accessibilityHint="Muestra el historial y las fotos del reporte"
+              >
+                <View style={estilos.encabezadoTarjeta}>
+                  <View>
+                    <Text style={estilos.codigo}>
+                      {item.codigo || 'Reporte pendiente'}
+                    </Text>
 
-                  <Text style={estilos.fecha}>
-                    {new Date(item.creadoEn).toLocaleDateString('es-AR')}
-                  </Text>
-                </View>
-
-                <View style={estilos.indicadores}>
-                  <View
-                    style={[
-                      estilos.estado,
-                      {
-                        backgroundColor: obtenerColorEstado(item.estado),
-                      },
-                    ]}
-                  >
-                    <Text style={estilos.estadoTexto}>
-                      {obtenerTextoEstado(item.estado)}
+                    <Text style={estilos.fecha}>
+                      {new Date(item.creadoEn).toLocaleDateString('es-AR')}
                     </Text>
                   </View>
 
-                  <View
-                    style={[
-                      estilos.sincronizacion,
-                      item.sincronizado
-                        ? estilos.sincronizado
-                        : estilos.pendiente,
-                    ]}
-                    accessibilityRole="text"
-                    accessibilityLabel={
-                      item.sincronizado
-                        ? 'Reporte sincronizado con el servidor'
-                        : 'Reporte pendiente de sincronización'
-                    }
-                  >
-                    <Ionicons
-                      name={
-                        item.sincronizado
-                          ? 'cloud-done-outline'
-                          : 'cloud-upload-outline'
-                      }
-                      size={14}
-                      color={item.sincronizado ? '#15803D' : '#B45309'}
-                    />
-                    <Text
+                  <View style={estilos.indicadores}>
+                    <View
                       style={[
-                        estilos.sincronizacionTexto,
-                        { color: item.sincronizado ? '#15803D' : '#B45309' },
+                        estilos.estado,
+                        {
+                          backgroundColor: obtenerColorEstado(item.estado),
+                        },
                       ]}
                     >
-                      {item.sincronizado ? 'Sincronizado' : 'Pendiente'}
-                    </Text>
+                      <Text style={estilos.estadoTexto}>
+                        {obtenerTextoEstado(item.estado)}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[
+                        estilos.sincronizacion,
+                        item.sincronizado
+                          ? estilos.sincronizado
+                          : estilos.pendiente,
+                      ]}
+                      accessibilityRole="text"
+                      accessibilityLabel={
+                        item.sincronizado
+                          ? 'Reporte sincronizado con el servidor'
+                          : 'Reporte pendiente de sincronización'
+                      }
+                    >
+                      <Ionicons
+                        name={
+                          item.sincronizado
+                            ? 'cloud-done-outline'
+                            : 'cloud-upload-outline'
+                        }
+                        size={14}
+                        color={item.sincronizado ? '#15803D' : '#B45309'}
+                      />
+                      <Text
+                        style={[
+                          estilos.sincronizacionTexto,
+                          { color: item.sincronizado ? '#15803D' : '#B45309' },
+                        ]}
+                      >
+                        {item.sincronizado ? 'Sincronizado' : 'Pendiente'}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              <View style={estilos.linea} />
+                <View style={estilos.linea} />
 
-              <Text style={estilos.etiqueta}>
-                Descripción
-              </Text>
+                <Text style={estilos.etiqueta}>
+                  Descripción
+                </Text>
 
-              <Text style={estilos.descripcion}>
-                {item.descripcion || 'Sin descripción adicional.'}
-              </Text>
+                <Text style={estilos.descripcion}>
+                  {item.descripcion || 'Sin descripción adicional.'}
+                </Text>
 
-              <Text style={estilos.ubicacion}>
-                📍 {item.direccion || 'Ubicación registrada en el mapa'}
-              </Text>
+                <Text style={estilos.ubicacion}>
+                  📍 {item.direccion || 'Ubicación registrada en el mapa'}
+                </Text>
+              </Pressable>
 
               {qrDisponible ? (
                 <Pressable
