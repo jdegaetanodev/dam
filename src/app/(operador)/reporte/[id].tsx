@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -62,7 +62,7 @@ export default function DetalleReporteScreen() {
   // Expo Router pasa el id que viene en la dirección: /reporte/rep-00412
   const { id } = useLocalSearchParams<{ id: string }>();
   // Alto de la barra de navegación del celular, para que no tape el final de la pantalla.
-  const { bottom } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
 
   const [reporte, setReporte] = useState<Reporte | null>(null);
   const [historial, setHistorial] = useState<CambioDeEstado[]>([]);
@@ -132,42 +132,48 @@ export default function DetalleReporteScreen() {
   const fotosDelArreglo = reporte.fotos.filter((f) => f.momento === 'arreglo');
 
   return (
-    <ScrollView
-      style={estilos.contenedor} contentContainerStyle={[estilos.contenido, { paddingBottom: 16 + bottom }]}>
-      {/* El título del encabezado muestra el número de seguimiento. */}
-      <Stack.Screen options={{ title: `Reporte ${reporte.codigo}` }} />
+     <KeyboardAvoidingView style={estilos.contenedor} behavior="padding" keyboardVerticalOffset={top + 64}>
+      <ScrollView
+        style={estilos.contenedor}
+        contentContainerStyle={[estilos.contenido, { paddingBottom: 16 + bottom }]}
+        // Con el teclado abierto, el primer toque en un botón funciona (no solo cierra el teclado).
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* El título del encabezado muestra el número de seguimiento. */}
+        <Stack.Screen options={{ title: `Reporte ${reporte.codigo}` }} />
 
-      <View style={estilos.seccion}>
-        <Text style={estilos.titulo}>
-          {nombreTipo} - {reporte.direccion}
-        </Text>
-        <InsigniaEstado estado={reporte.estado} />
-        <Text style={estilos.dato}>Zona: {nombreZona}</Text>
-        <Text style={estilos.dato}>{textoAdhesiones(reporte.adhesiones)}</Text>
-        {reporte.descripcion ? <Text style={estilos.descripcion}>{reporte.descripcion}</Text> : null}
-        {reporte.audioUrl ? <ReproductorAudio url={reporte.audioUrl} /> : null}
-      </View>
+        <View style={estilos.seccion}>
+          <Text style={estilos.titulo}>
+            {nombreTipo} - {reporte.direccion}
+          </Text>
+          <InsigniaEstado estado={reporte.estado} />
+          <Text style={estilos.dato}>Zona: {nombreZona}</Text>
+          <Text style={estilos.dato}>{textoAdhesiones(reporte.adhesiones)}</Text>
+          {reporte.descripcion ? <Text style={estilos.descripcion}>{reporte.descripcion}</Text> : null}
+          {reporte.audioUrl ? <ReproductorAudio url={reporte.audioUrl} /> : null}
+        </View>
 
-      <Fotos titulo="Fotos del problema" fotos={fotosDelProblema} />
-      {fotosDelArreglo.length > 0 ? <Fotos titulo="Fotos del arreglo" fotos={fotosDelArreglo} /> : null}
+        <Fotos titulo="Fotos del problema" fotos={fotosDelProblema} />
+        {fotosDelArreglo.length > 0 ? <Fotos titulo="Fotos del arreglo" fotos={fotosDelArreglo} /> : null}
 
-      <View style={estilos.seccion}>
-        <Text style={estilos.tituloSeccion} accessibilityRole="header">
-          Qué fue pasando
-        </Text>
-        {historial.map((cambio) => (
-          <View key={cambio.id} style={estilos.cambio}>
-            <Text style={estilos.dato}>
-              {formatearFecha(cambio.fechaHora)} · {ETIQUETAS_ESTADO[cambio.estado]}
-            </Text>
-            {cambio.comentario ? <Text style={estilos.comentario}>{`"${cambio.comentario}"`}</Text> : null}
-          </View>
-        ))}
-      </View>
+        <View style={estilos.seccion}>
+          <Text style={estilos.tituloSeccion} accessibilityRole="header">
+            Qué fue pasando
+          </Text>
+          {historial.map((cambio) => (
+            <View key={cambio.id} style={estilos.cambio}>
+              <Text style={estilos.dato}>
+                {formatearFecha(cambio.fechaHora)} · {ETIQUETAS_ESTADO[cambio.estado]}
+              </Text>
+              {cambio.comentario ? <Text style={estilos.comentario}>{`"${cambio.comentario}"`}</Text> : null}
+            </View>
+          ))}
+        </View>
 
-      {/* Después de cada acción, se vuelve a pedir el reporte para mostrar lo que quedó guardado. */}
-      <AccionesReporte reporte={reporte} onCambio={recargar} />
-    </ScrollView>
+        {/* Después de cada acción, se vuelve a pedir el reporte para mostrar lo que quedó guardado. */}
+        <AccionesReporte reporte={reporte} onCambio={recargar} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
