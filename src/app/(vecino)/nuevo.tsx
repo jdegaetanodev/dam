@@ -3,6 +3,7 @@ import {  ActivityIndicator, Alert, AppState, KeyboardAvoidingView, Platform, Pr
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { CategoriaGrid } from '../../componentes/CategoriaGrid';
+import { AvisoSinConexion } from '../../componentes/AvisoSinConexion';
 import { GrabadorVoz } from '../../componentes/GrabadorVoz';
 import { PanelReportesCercanos } from '../../componentes/PanelReportesCercanos';
 import { SelectorEvidencia } from '../../componentes/SelectorEvidencia';
@@ -591,6 +592,10 @@ export default function NuevoReporte() {
   if (!borradorListo) {
     return (
       <View style={styles.cargandoBorrador}>
+        <AvisoSinConexion
+          internetDisponible={internetDisponible}
+          mensaje="Estás sin conexión. Podés crear el reporte; se guardará en este dispositivo."
+        />
         <ActivityIndicator size="large" color="#0B3A5D" />
         <Text style={styles.cargandoBorradorTexto}>Revisando borradores...</Text>
       </View>
@@ -616,6 +621,11 @@ export default function NuevoReporte() {
         >
           ¿Qué pasa?
         </Text>
+
+        <AvisoSinConexion
+          internetDisponible={internetDisponible}
+          mensaje="Estás sin conexión. El reporte se guardará en este dispositivo y se enviará cuando vuelva internet."
+        />
 
         {reportesPendientesDeRevision > 0 ? (
           <Pressable
@@ -807,6 +817,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
+    paddingHorizontal: 16,
     backgroundColor: '#F9FAFB',
   },
 

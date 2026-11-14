@@ -14,6 +14,7 @@ import Ionicons from '@react-native-vector-icons/ionicons';
 
 import { ModalQrReporte } from '../../componentes/ModalQrReporte';
 import { PanelReportesCercanos } from '../../componentes/PanelReportesCercanos';
+import { AvisoSinConexion } from '../../componentes/AvisoSinConexion';
 import { useAuth } from '../../contextos/AuthContext';
 import { useBaseDatos } from '../../contextos/BaseDatosContext';
 import { useEstadoRed } from '../../contextos/RedContext';
@@ -280,6 +281,10 @@ export default function MisReportesScreen() {
   if (cargando) {
     return (
       <View style={estilos.cargando}>
+        <AvisoSinConexion
+          internetDisponible={internetDisponible}
+          mensaje="Estás sin conexión. Se cargarán los reportes guardados en este dispositivo."
+        />
         <ActivityIndicator size="large" />
         <Text style={estilos.cargandoTexto}>
           Cargando tus reportes...
@@ -295,6 +300,11 @@ export default function MisReportesScreen() {
       <Text style={estilos.subtitulo}>
         Acá podés consultar el estado de tus reportes.
       </Text>
+
+      <AvisoSinConexion
+        internetDisponible={internetDisponible}
+        mensaje="Estás sin conexión. Se muestran los reportes guardados en este dispositivo; la lista se actualizará cuando vuelva internet."
+      />
 
       <ModalQrReporte
         visible={codigoQrSeleccionado !== null}
@@ -627,6 +637,7 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
+    paddingHorizontal: 16,
   },
 
   cargandoTexto: {
