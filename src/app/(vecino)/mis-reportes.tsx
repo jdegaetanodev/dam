@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   FlatList,
   Pressable,
@@ -12,13 +13,31 @@ import { router, useFocusEffect } from 'expo-router';
 import Ionicons from '@react-native-vector-icons/ionicons';
 
 import { ModalQrReporte } from '../../componentes/ModalQrReporte';
+import { PanelReportesCercanos } from '../../componentes/PanelReportesCercanos';
 import { useAuth } from '../../contextos/AuthContext';
 import { useBaseDatos } from '../../contextos/BaseDatosContext';
 import { useEstadoRed } from '../../contextos/RedContext';
 import { avisarCambiosDeEstado } from '../../servicios/notificaciones';
-import { obtenerMisReportes } from '../../servicios/reportes';
-import { listarReportesLocales } from '../../servicios/reportesLocal';
-import { Reporte } from '../../tipos';
+import {
+  obtenerMisReportes,
+  obtenerTiposDeReporte,
+  sumarAdhesion,
+} from '../../servicios/reportes';
+import {
+  eliminarReporteLocal,
+  listarReportesLocales,
+} from '../../servicios/reportesLocal';
+import {
+  cargarRevisionDuplicado,
+  eliminarRevisionDuplicado,
+  marcarAdhesionConfirmada,
+  marcarRevisionParaCrear,
+  RevisionDuplicado,
+} from '../../servicios/revisionesDuplicados';
+import { sincronizarReporteLocal } from '../../servicios/sincronizacionReportes';
+import { deleteStoredFile } from '../../servicios/mediaService';
+import { Reporte, TipoDeReporte } from '../../tipos';
+import { ReporteCercano } from '../../utilidades/reportesCercanos';
 
 //Listar reportes locales al dispositivo y remotos
 function combinarReportes(locales: Reporte[], remotos: Reporte[]): Reporte[] {
@@ -49,15 +68,58 @@ export default function MisReportesScreen() {
   const { usuario } = useAuth();
   const { internetDisponible } = useEstadoRed();
   const [reportes, setReportes] = useState<Reporte[]>([]);
+  const [tipos, setTipos] = useState<TipoDeReporte[]>([]);
+  const [revisionesDuplicado, setRevisionesDuplicado] =
+    useState<Record<string, RevisionDuplicado>>({});
   const [cargando, setCargando] = useState(true);
   const [actualizando, setActualizando] = useState(false);
   const [codigoQrSeleccionado, setCodigoQrSeleccionado] = useState<string | null>(null);
 
   const cargarReportes = useCallback(async () => {
     try {
-      const reportesLocales = usuario
+      const revisionesPendientes: Record<string, RevisionDuplicado> = {};
+      let reportesLocales = usuario
         ? await listarReportesLocales(db, usuario.id)
         : [];
+
+      if (usuario) {
+        const revisiones = await Promise.all(
+          reportesLocales
+            .filter((reporte) => !reporte.sincronizado)
+            .map(async (reporte) => ({
+              reporte,
+              revision: await cargarRevisionDuplicado(usuario.id, reporte.id),
+            }))
+        );
+        for (const { reporte, revision } of revisiones) {
+          if (!revision) continue;
+
+          if (revision.decision === 'adhesion_confirmada') {
+            await eliminarReporteLocal(db, reporte.id, usuario.id);
+            await Promise.all([
+              ...reporte.fotos.map((foto) => deleteStoredFile(foto.url)),
+              ...(reporte.audioUrl ? [deleteStoredFile(reporte.audioUrl)] : []),
+            ]);
+            await eliminarRevisionDuplicado(usuario.id, reporte.id);
+            continue;
+          }
+
+          revisionesPendientes[reporte.id] = revision;
+        }
+
+        reportesLocales = await listarReportesLocales(db, usuario.id);
+      }
+      setRevisionesDuplicado(revisionesPendientes);
+
+      if (Object.keys(revisionesPendientes).length > 0) {
+        const listaTipos = await obtenerTiposDeReporte().catch((error: unknown) => {
+          console.error('No se pudieron cargar los tipos de reporte:', error);
+          return [];
+        });
+        setTipos(listaTipos);
+      } else {
+        setTipos([]);
+      }
       setReportes(combinarReportes(reportesLocales, []));
 
       if (internetDisponible === true && usuario) {
@@ -88,8 +150,82 @@ export default function MisReportesScreen() {
 
   const actualizar = () => {
     setActualizando(true);
-    cargarReportes();
+    void cargarReportes();
   };
+
+  async function adherirAReporteExistente(
+    reporteLocal: Reporte,
+    candidato: ReporteCercano
+  ) {
+    if (!usuario) return;
+
+    Alert.alert(
+      '¿Es el mismo problema?',
+      `Si te sumás a ${candidato.codigo}, no se creará el reporte pendiente.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, sumarme',
+          onPress: () => {
+            void (async () => {
+              try {
+                await sumarAdhesion(candidato.id);
+                await marcarAdhesionConfirmada(usuario.id, reporteLocal.id, candidato.id);
+                await cargarReportes();
+                Alert.alert(
+                  '¡Te sumaste al reporte!',
+                  `Te sumaste a ${candidato.codigo}; el reporte pendiente se quitó de la cola.`
+                );
+              } catch (error) {
+                console.error('No se pudo completar la adhesión al reporte cercano:', error);
+                Alert.alert(
+                  'No se pudo sumar al reporte',
+                  error instanceof Error ? error.message : 'Intentá nuevamente cuando tengas conexión.'
+                );
+              }
+            })();
+          },
+        },
+      ]
+    );
+  }
+
+  async function crearReportePendiente(reporteLocal: Reporte) {
+    if (!usuario) return;
+
+    Alert.alert(
+      'Crear un reporte nuevo',
+      'Confirmás que ninguno de los reportes cercanos describe el mismo problema.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Crear igualmente',
+          onPress: () => {
+            void (async () => {
+              try {
+                await marcarRevisionParaCrear(usuario.id, reporteLocal.id);
+                await sincronizarReporteLocal(db, reporteLocal);
+                await eliminarRevisionDuplicado(usuario.id, reporteLocal.id);
+                setRevisionesDuplicado((actuales) => {
+                  const siguientes = { ...actuales };
+                  delete siguientes[reporteLocal.id];
+                  return siguientes;
+                });
+                await cargarReportes();
+                Alert.alert('Reporte sincronizado', 'Tu reporte se envió al servidor.');
+              } catch (error) {
+                console.error('No se pudo sincronizar el reporte pendiente:', error);
+                Alert.alert(
+                  'No se pudo enviar el reporte',
+                  error instanceof Error ? error.message : 'Se volverá a intentar más tarde.'
+                );
+              }
+            })();
+          },
+        },
+      ]
+    );
+  }
 
   function obtenerTextoEstado(estado: string) {
     switch (estado) {
@@ -195,6 +331,7 @@ export default function MisReportesScreen() {
         }
         renderItem={({ item }) => {
           const qrDisponible = item.codigo.trim().length > 0;
+          const revision = revisionesDuplicado[item.id];
 
           return (
             <View style={estilos.tarjeta}>
@@ -306,6 +443,21 @@ export default function MisReportesScreen() {
                   </Text>
                 </View>
               )}
+
+              {revision?.decision === 'revisar' ? (
+                <PanelReportesCercanos
+                  candidatos={revision.candidatos}
+                  tipos={tipos}
+                  onAdherir={(candidato) => {
+                    void adherirAReporteExistente(item, candidato);
+                  }}
+                  onCrearNuevo={() => {
+                    void crearReportePendiente(item);
+                  }}
+                  textoCrearNuevo="Ninguno coincide: enviar mi reporte"
+                  descripcionCrearNuevo="El reporte está retenido hasta que confirmes esta decisión."
+                />
+              ) : null}
             </View>
           );
         }}
