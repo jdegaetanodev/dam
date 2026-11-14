@@ -1,24 +1,22 @@
-
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View,} from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useFocusEffect } from 'expo-router';
-
-import {
-  obtenerReportes,
-  sumarAdhesion,
-} from '../../servicios/reportes';
-import { Reporte } from '../../tipos';
+import { obtenerReportes, obtenerTiposDeReporte, sumarAdhesion,} from '../../servicios/reportes';
+import { Reporte, TipoDeReporte,} from '../../tipos';
 import { MOCK_ZONAS } from '../../mocks/zonas.mock';
 
 export default function MapaScreen() {
   const [reportes, setReportes] = useState<Reporte[]>([]);
   const [cargando, setCargando] = useState(true);
+
+  const [tipos, setTipos] = useState<TipoDeReporte[]>([]);
+
+  const [tipoSeleccionado, setTipoSeleccionado] =
+    useState<string | null>(null);
+
+  const [estadoSeleccionado, setEstadoSeleccionado] =
+    useState<string | null>(null);
 
   // Actualiza los reportes cada vez que volvemos al mapa.
   useFocusEffect(
@@ -27,13 +25,25 @@ export default function MapaScreen() {
 
       async function cargarReportes() {
         try {
-          const datos = await obtenerReportes();
+          setCargando(true);
+
+          const [
+            datosReportes,
+            datosTipos,
+          ] = await Promise.all([
+            obtenerReportes(),
+            obtenerTiposDeReporte(),
+          ]);
 
           if (activo) {
-            setReportes(datos);
+            setReportes(datosReportes);
+            setTipos(datosTipos);
           }
         } catch (error) {
-          console.log('Error al cargar reportes:', error);
+          console.log(
+            'Error al cargar reportes:',
+            error
+          );
         } finally {
           if (activo) {
             setCargando(false);
@@ -49,47 +59,69 @@ export default function MapaScreen() {
     }, [])
   );
 
+  // Filtra los reportes según el tipo y el estado seleccionados.
+  const reportesFiltrados = reportes.filter(
+    (reporte) => {
+      const coincideTipo =
+        !tipoSeleccionado ||
+        reporte.tipoId === tipoSeleccionado;
+
+      const coincideEstado =
+        !estadoSeleccionado ||
+        reporte.estado === estadoSeleccionado;
+
+      return coincideTipo && coincideEstado;
+    }
+  );
+
   async function manejarMensaje(event: any) {
-  try {
-    const datos = JSON.parse(event.nativeEvent.data);
-
-    if (datos.tipo === 'SUMARSE_RECLAMO') {
-      const reporteActualizado = await sumarAdhesion(
-        datos.reporteId
+    try {
+      const datos = JSON.parse(
+        event.nativeEvent.data
       );
 
-      setReportes((reportesActuales) =>
-        reportesActuales.map((reporte) =>
-          reporte.id === reporteActualizado.id
-            ? reporteActualizado
-            : reporte
-        )
+      if (datos.tipo === 'SUMARSE_RECLAMO') {
+        const reporteActualizado =
+          await sumarAdhesion(
+            datos.reporteId
+          );
+
+        setReportes(
+          (reportesActuales) =>
+            reportesActuales.map(
+              (reporte) =>
+                reporte.id ===
+                reporteActualizado.id
+                  ? reporteActualizado
+                  : reporte
+            )
+        );
+
+        Alert.alert(
+          '¡Te sumaste al reclamo!',
+          `${reporteActualizado.codigo} ahora tiene ${reporteActualizado.adhesiones} adhesión(es).`
+        );
+      }
+    } catch (error) {
+      console.log(
+        'Error al sumarse al reclamo',
+        error
       );
+
+      const mensaje =
+        error instanceof Error
+          ? error.message
+          : 'No se pudo registrar tu adhesión.';
 
       Alert.alert(
-        '¡Te sumaste al reclamo!',
-        `${reporteActualizado.codigo} ahora tiene ${reporteActualizado.adhesiones} adhesión(es).`
+        mensaje ===
+          'Ya estás adherido a este reclamo.'
+          ? 'Ya estás adherido'
+          : 'Error',
+        mensaje
       );
     }
-  } catch (error) {
-    console.log(
-      'Error al sumarse al reclamo',
-      error
-    );
-
-    const mensaje =
-      error instanceof Error
-        ? error.message
-        : 'No se pudo registrar tu adhesión.';
-
-    Alert.alert(
-      mensaje === 'Ya estás adherido a este reclamo.'
-        ? 'Ya estás adherido'
-        : 'Error',
-      mensaje
-    );
   }
-}
 
   if (cargando) {
     return (
@@ -99,7 +131,7 @@ export default function MapaScreen() {
     );
   }
 
-  const marcadores = reportes
+  const marcadores = reportesFiltrados
     .map((reporte) => {
       let color = '#2563EB';
 
@@ -146,7 +178,7 @@ export default function MapaScreen() {
 
             '<br/>' +
 
-            '${reporte.direccion}' +
+            '${reporte.direccion ?? ''}' +
 
             '<br/><br/>' +
 
@@ -287,6 +319,84 @@ export default function MapaScreen() {
 
   return (
     <View style={estilos.contenedor}>
+
+      <View style={estilos.filtros}>
+        <Text style={estilos.tituloFiltros}>
+          Filtrar reportes
+        </Text>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={estilos.scrollFiltros}
+        >
+          <Pressable
+            style={[
+              estilos.botonFiltro,
+              !tipoSeleccionado &&
+                estilos.botonFiltroActivo,
+            ]}
+            onPress={() =>
+              setTipoSeleccionado(null)
+            }
+          >
+            <Text>Todos</Text>
+          </Pressable>
+
+          {tipos.map((tipo) => (
+            <Pressable
+              key={tipo.id}
+              style={[
+                estilos.botonFiltro,
+                tipoSeleccionado === tipo.id &&
+                  estilos.botonFiltroActivo,
+              ]}
+              onPress={() =>
+                setTipoSeleccionado(tipo.id)
+              }
+            >
+              <Text>
+                {tipo.nombre}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={estilos.scrollFiltros}
+        >
+          {[
+            null,
+            'en_revision',
+            'resuelto',
+            'rechazado',
+          ].map((estado) => (
+            <Pressable
+              key={
+                estado ??
+                'todos-estados'
+              }
+              style={[
+                estilos.botonFiltro,
+                estadoSeleccionado === estado &&
+                  estilos.botonFiltroActivo,
+              ]}
+              onPress={() =>
+                setEstadoSeleccionado(estado)
+              }
+            >
+              <Text>
+                {estado
+                  ? estado.replace('_', ' ')
+                  : 'Todos los estados'}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
       <WebView
         originWhitelist={['*']}
         source={{ html }}
@@ -295,6 +405,7 @@ export default function MapaScreen() {
         domStorageEnabled={true}
         onMessage={manejarMensaje}
       />
+
     </View>
   );
 }
@@ -302,6 +413,35 @@ export default function MapaScreen() {
 const estilos = StyleSheet.create({
   contenedor: {
     flex: 1,
+  },
+
+  filtros: {
+    padding: 10,
+    backgroundColor: '#FFFFFF',
+  },
+
+  tituloFiltros: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+
+  scrollFiltros: {
+    marginBottom: 8,
+  },
+
+  botonFiltro: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    borderRadius: 20,
+    marginRight: 8,
+  },
+
+  botonFiltroActivo: {
+    backgroundColor: '#DDEBFF',
+    borderColor: '#2563EB',
   },
 
   mapa: {

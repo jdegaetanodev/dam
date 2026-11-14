@@ -80,11 +80,8 @@ export const crearReporte = async (
 
 // ───────────────────────── Siguen con mocks (no son de esta pantalla) ─────────────────────────
 
-export const obtenerReportes = async (): Promise<Reporte[]> => {
-  await demorar();
-
-  return [...MOCK_REPORTES];
-};
+export const obtenerReportes = async (): Promise<Reporte[]> =>
+  api.get<Reporte[]>('/reportes');
 
 export const actualizarEstadoReporte = async (
   reporteId: string,
@@ -126,38 +123,8 @@ export const actualizarEstadoReporte = async (
 export const sumarAdhesion = async (
   reporteId: string
 ): Promise<Reporte> => {
-  await demorar();
-
-  const index = MOCK_REPORTES.findIndex(
-    (reporte) => reporte.id === reporteId
+  return api.post<Reporte>(
+    `/reportes/${reporteId}/adhesiones`,
+    {}
   );
-
-  if (index === -1) {
-    throw new Error(
-      `Reporte con id ${reporteId} no encontrado`
-    );
-  }
-
-  // Identificador único de la adhesión:
-  // un usuario solo puede adherirse una vez al mismo reclamo.
-  const claveAdhesion =
-    `${USUARIO_ACTUAL_ID}-${reporteId}`;
-
-  if (ADHESIONES_REALIZADAS.has(claveAdhesion)) {
-    throw new Error(
-      'Ya estás adherido a este reclamo.'
-    );
-  }
-
-  // Registrar la adhesión
-  ADHESIONES_REALIZADAS.add(claveAdhesion);
-
-  // Incrementar contador
-  MOCK_REPORTES[index] = {
-    ...MOCK_REPORTES[index],
-    adhesiones:
-      MOCK_REPORTES[index].adhesiones + 1,
-  };
-
-  return MOCK_REPORTES[index];
 };
