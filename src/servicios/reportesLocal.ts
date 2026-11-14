@@ -147,3 +147,16 @@ export async function obtenerReporteLocal(
 
   return fila ? convertirReporte(fila) : null;
 }
+
+export async function eliminarReporteLocal(
+  db: SQLiteDatabase,
+  id: string,
+  autorId: string
+): Promise<void> {
+  validarPropietario(autorId);
+  await db.runAsync(
+    'DELETE FROM reportes WHERE id = ? AND autorId = ?',
+    id,
+    autorId
+  );
+}
