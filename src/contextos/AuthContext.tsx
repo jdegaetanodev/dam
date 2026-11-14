@@ -18,6 +18,7 @@ interface AuthContextData {
 const CLAVE_TOKEN = 'sesion_token_seguro';
 const CLAVE_USUARIO = 'sesion_usuario_datos';
 const CLAVE_ULTIMO_OPERADOR = 'sesion_ultimo_operador';
+const CLAVE_TOKEN_OPERADOR = 'sesion_token_ultimo_operador';
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
@@ -33,10 +34,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const token = await SecureStore.getItemAsync(CLAVE_TOKEN);
         const usuarioGuardado = await SecureStore.getItemAsync(CLAVE_USUARIO);
         const ultimoOperador = await SecureStore.getItemAsync(CLAVE_ULTIMO_OPERADOR);
+        const tokenOperador = await SecureStore.getItemAsync(CLAVE_TOKEN_OPERADOR);
 
         if (token && usuarioGuardado) {
           setUsuario(JSON.parse(usuarioGuardado) as Usuario);
-        } else if (ultimoOperador) {
+        } else if (ultimoOperador && tokenOperador) {
           // Si no hay sesión activa pero un operador ya usó la app previamente, comprobamos hardware
           const { soportaBiometria, tieneHuellasRegistradas } = await verificarDisponibilidadBiometrica();
           setPuedeReingresarConHuella(soportaBiometria && tieneHuellasRegistradas);
@@ -58,6 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (respuesta.usuario.rol === 'operador') {
       await SecureStore.setItemAsync(CLAVE_ULTIMO_OPERADOR, JSON.stringify(respuesta.usuario));
+      await SecureStore.setItemAsync(CLAVE_TOKEN_OPERADOR, respuesta.token);
       const { soportaBiometria, tieneHuellasRegistradas } = await verificarDisponibilidadBiometrica();
       setPuedeReingresarConHuella(soportaBiometria && tieneHuellasRegistradas);
     }
@@ -72,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (rol === 'operador') {
       await SecureStore.setItemAsync(CLAVE_ULTIMO_OPERADOR, JSON.stringify(respuesta.usuario));
+      await SecureStore.setItemAsync(CLAVE_TOKEN_OPERADOR, respuesta.token);
       const { soportaBiometria, tieneHuellasRegistradas } = await verificarDisponibilidadBiometrica();
       setPuedeReingresarConHuella(soportaBiometria && tieneHuellasRegistradas);
     }
@@ -82,14 +86,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const reingresarOperadorConHuella = async (): Promise<boolean> => {
     try {
       const operadorGuardado = await SecureStore.getItemAsync(CLAVE_ULTIMO_OPERADOR);
-      if (!operadorGuardado) return false;
+      const tokenOperador = await SecureStore.getItemAsync(CLAVE_TOKEN_OPERADOR);
+
+      if (!operadorGuardado || !tokenOperador) return false;
 
       const autenticado = await autenticarConHuella('Colocá tu huella para reingresar como Operador');
       if (autenticado) {
         const datosOperador = JSON.parse(operadorGuardado) as Usuario;
-        // Restauramos el token y el usuario en SecureStore y en el estado global
-        const token = `tok_biometria_${datosOperador.id}_${Date.now()}`;
-        await SecureStore.setItemAsync(CLAVE_TOKEN, token);
+        // Restauramos el token REAL y el usuario en SecureStore y en el estado global
+        await SecureStore.setItemAsync(CLAVE_TOKEN, tokenOperador);
         await SecureStore.setItemAsync(CLAVE_USUARIO, operadorGuardado);
         setUsuario(datosOperador);
         return true;
@@ -105,9 +110,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await SecureStore.deleteItemAsync(CLAVE_TOKEN);
       await SecureStore.deleteItemAsync(CLAVE_USUARIO);
-      // Mantenemos CLAVE_ULTIMO_OPERADOR para que pueda volver a entrar con huella
+      // Mantenemos CLAVE_ULTIMO_OPERADOR y CLAVE_TOKEN_OPERADOR para que pueda volver a entrar con huella
       const ultimoOperador = await SecureStore.getItemAsync(CLAVE_ULTIMO_OPERADOR);
-      if (ultimoOperador) {
+      const tokenOperador = await SecureStore.getItemAsync(CLAVE_TOKEN_OPERADOR);
+      if (ultimoOperador && tokenOperador) {
         const { soportaBiometria, tieneHuellasRegistradas } = await verificarDisponibilidadBiometrica();
         setPuedeReingresarConHuella(soportaBiometria && tieneHuellasRegistradas);
       }

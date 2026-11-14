@@ -67,7 +67,7 @@ export const CamaraModal: React.FC<CamaraModalProps> = ({
       setGuardando(true);
       const foto = await cameraRef.current.takePictureAsync({
         quality: 0.8,
-        skipProcessing: false,
+        skipProcessing: true,
       });
 
       if (foto?.uri) {
